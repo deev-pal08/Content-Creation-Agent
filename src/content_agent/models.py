@@ -43,8 +43,6 @@ class ImageGenerator(StrEnum):
     SATORI = "satori"
     PUPPETEER = "puppeteer"
     PLAYWRIGHT = "playwright"
-    RECRAFT = "recraft"
-    IDEOGRAM = "ideogram"
     GPT4O = "gpt4o"
 
 
@@ -63,6 +61,7 @@ class ObsidianNote(BaseModel):
     content: str = ""
     key_takeaways: list[str] = Field(default_factory=list)
     connections: list[str] = Field(default_factory=list)
+    linked_content: dict[str, str] = Field(default_factory=dict)
     open_questions: list[str] = Field(default_factory=list)
 
 

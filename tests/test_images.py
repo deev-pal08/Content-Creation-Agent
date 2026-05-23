@@ -58,6 +58,18 @@ def test_day_card_html_generation(tmp_path):
     assert "Cloud metadata is the primary target" in html_content
 
 
+def test_day_card_with_concept_image(tmp_path):
+    concept_path = tmp_path / "concept.png"
+    concept_path.write_bytes(b"fake png data")
+    producer = ImageProducer(output_dir=str(tmp_path / "images"))
+    asset = producer.generate_day_card(
+        day_number=1, topic="Test", concept_image_path=str(concept_path),
+    )
+    assert asset.generator == "gpt4o"
+    html_content = (tmp_path / "images" / "day_1_card.html").read_text()
+    assert "background-image" in html_content
+
+
 def test_code_challenge_html_generation(tmp_path):
     producer = ImageProducer(output_dir=str(tmp_path / "images"))
     code = 'query = f"SELECT * FROM users WHERE name = \'{user_input}\'"'
@@ -77,22 +89,6 @@ def test_code_challenge_html_generation(tmp_path):
     assert "Spot the Bug" in html_content
     assert "python" in html_content
     assert "DAY 5" in html_content
-
-
-def test_infographic_no_api_key(tmp_path):
-    producer = ImageProducer(output_dir=str(tmp_path / "images"))
-    asset = producer.generate_infographic("SSRF", "How SSRF works")
-    assert asset.image_type == "infographic"
-    assert asset.generator == "recraft"
-    assert asset.file_path == ""  # no API key, no file generated
-
-
-def test_concept_explainer_no_api_key(tmp_path):
-    producer = ImageProducer(output_dir=str(tmp_path / "images"))
-    asset = producer.generate_concept_explainer("XSS", "Cross-site scripting flow")
-    assert asset.image_type == "concept_explainer"
-    assert asset.generator == "ideogram"
-    assert asset.file_path == ""
 
 
 def test_generate_all_for_day_empty_notes(tmp_path):

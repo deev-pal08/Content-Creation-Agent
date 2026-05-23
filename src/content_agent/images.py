@@ -1,15 +1,15 @@
-"""Image generation — HTML templates (day cards, code challenges) + AI APIs (infographics, explainers)."""
+"""Image generation — HTML templates (day cards, code challenges) + GPT-4o concept art."""
 
 from __future__ import annotations
 
-import json
+import base64
 import logging
 import re
 import subprocess
 from pathlib import Path
 
-import httpx
 from jinja2 import Environment, FileSystemLoader
+from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from content_agent.config import BrandColors
@@ -39,26 +39,58 @@ class ImageProducer:
         self,
         output_dir: str = "output/images",
         brand_colors: BrandColors | None = None,
-        recraft_api_key: str = "",
-        ideogram_api_key: str = "",
         openai_api_key: str = "",
     ):
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._colors = brand_colors or BrandColors()
-        self._recraft_key = recraft_api_key
-        self._ideogram_key = ideogram_api_key
         self._openai_key = openai_api_key
         self._jinja_env = Environment(
             loader=FileSystemLoader(str(TEMPLATES_DIR)),
             autoescape=True,
         )
 
+    @retry(stop=stop_after_attempt(2), wait=wait_exponential(min=2, max=30))
+    def generate_concept_image(
+        self, topic: str, takeaway: str, day_number: int,
+    ) -> str:
+        if not self._openai_key:
+            log.warning("No OpenAI API key — skipping concept image generation")
+            return ""
+
+        prompt = (
+            f"Create a visually striking cybersecurity concept illustration for: {topic}. "
+            f"Key concept: {takeaway}. "
+            f"Style: dark moody background, modern digital art, cyberpunk-inspired, "
+            f"cinematic lighting, abstract visualization of the security concept. "
+            f"The image should tell a story about the security topic visually. "
+            f"Do NOT include any text, words, labels, or watermarks in the image."
+        )
+
+        client = OpenAI(api_key=self._openai_key)
+        response = client.images.generate(
+            model="gpt-image-1",
+            prompt=prompt,
+            size="1024x1024",
+            quality="low",
+            n=1,
+        )
+
+        image_b64 = response.data[0].b64_json
+        concept_path = self._output_dir / f"day_{day_number}_concept.png"
+        concept_path.write_bytes(base64.b64decode(image_b64))
+        log.info("Generated concept image: %s", concept_path)
+        return str(concept_path)
+
     def generate_day_card(
         self, day_number: int, topic: str, track: str = "",
         key_takeaway: str = "", date: str = "",
+        concept_image_path: str = "",
     ) -> ImageAsset:
         template = self._jinja_env.get_template("day_card.html")
+        bg_image_uri = ""
+        if concept_image_path and Path(concept_image_path).exists():
+            bg_image_uri = f"file://{Path(concept_image_path).resolve()}"
         html = template.render(
             day_number=day_number,
             topic=topic,
@@ -66,6 +98,7 @@ class ImageProducer:
             key_takeaway=key_takeaway,
             date=date,
             colors=self._colors.model_dump(),
+            bg_image_uri=bg_image_uri,
         )
 
         html_path = self._output_dir / f"day_{day_number}_card.html"
@@ -75,7 +108,9 @@ class ImageProducer:
         _html_to_png(html_path, png_path)
 
         backend = _detect_screenshot_backend()
-        gen = ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+        gen = ImageGenerator.GPT4O if concept_image_path else (
+            ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+        )
 
         return ImageAsset(
             image_type=ImageType.DAY_CARD,
@@ -117,92 +152,6 @@ class ImageProducer:
             metadata={"language": language, "vulnerability": vulnerability},
         )
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def generate_infographic(self, topic: str, description: str) -> ImageAsset:
-        if not self._recraft_key:
-            log.warning("No Recraft API key — skipping infographic generation")
-            return ImageAsset(
-                image_type=ImageType.INFOGRAPHIC,
-                generator=ImageGenerator.RECRAFT,
-                prompt=f"Infographic: {topic}",
-            )
-
-        prompt = (
-            f"Create a clean, professional infographic explaining: {topic}. "
-            f"Details: {description}. "
-            f"Style: modern, minimal, dark background ({self._colors.primary}), "
-            f"accent color ({self._colors.highlight}). "
-            f"Include clear labels and a logical flow."
-        )
-
-        with httpx.Client(timeout=60) as client:
-            resp = client.post(
-                "https://external.api.recraft.ai/v1/images/generations",
-                headers={"Authorization": f"Bearer {self._recraft_key}"},
-                json={
-                    "prompt": prompt,
-                    "style": "digital_illustration",
-                    "size": "1024x1024",
-                },
-            )
-            resp.raise_for_status()
-
-        data = resp.json()
-        image_url = data["data"][0]["url"]
-        png_path = self._output_dir / f"infographic_{topic[:30].replace(' ', '_')}.png"
-        _download_image(image_url, png_path)
-
-        return ImageAsset(
-            image_type=ImageType.INFOGRAPHIC,
-            file_path=str(png_path),
-            generator=ImageGenerator.RECRAFT,
-            prompt=prompt,
-        )
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def generate_concept_explainer(self, topic: str, description: str) -> ImageAsset:
-        if not self._ideogram_key:
-            log.warning("No Ideogram API key — skipping concept explainer")
-            return ImageAsset(
-                image_type=ImageType.CONCEPT_EXPLAINER,
-                generator=ImageGenerator.IDEOGRAM,
-                prompt=f"Concept: {topic}",
-            )
-
-        prompt = (
-            f"Educational diagram explaining: {topic}. "
-            f"{description}. "
-            f"Clean layout with clear labels, arrows showing flow, "
-            f"dark background, modern style. "
-            f"Make all text clearly readable."
-        )
-
-        with httpx.Client(timeout=60) as client:
-            resp = client.post(
-                "https://api.ideogram.ai/generate",
-                headers={"Api-Key": self._ideogram_key},
-                json={
-                    "image_request": {
-                        "prompt": prompt,
-                        "aspect_ratio": "ASPECT_1_1",
-                        "model": "V_2",
-                    },
-                },
-            )
-            resp.raise_for_status()
-
-        data = resp.json()
-        image_url = data["data"][0]["url"]
-        png_path = self._output_dir / f"explainer_{topic[:30].replace(' ', '_')}.png"
-        _download_image(image_url, png_path)
-
-        return ImageAsset(
-            image_type=ImageType.CONCEPT_EXPLAINER,
-            file_path=str(png_path),
-            generator=ImageGenerator.IDEOGRAM,
-            prompt=prompt,
-        )
-
     def generate_all_for_day(
         self, notes: list[ObsidianNote], day_number: int, date: str = "",
         code_challenge: dict | None = None,
@@ -215,10 +164,19 @@ class ImageProducer:
         topic = primary_note.title or primary_note.track or "Security"
         takeaway = primary_note.key_takeaways[0] if primary_note.key_takeaways else ""
 
+        concept_path = ""
+        try:
+            concept_path = self.generate_concept_image(topic, takeaway, day_number)
+            if concept_path:
+                log.info("Concept image generated: %s", concept_path)
+        except Exception as e:
+            log.warning("Concept image generation failed — using plain card: %s", e)
+
         try:
             card = self.generate_day_card(
                 day_number=day_number, topic=topic,
                 track=primary_note.track, key_takeaway=takeaway, date=date,
+                concept_image_path=concept_path,
             )
             assets.append(card)
         except Exception as e:
@@ -254,7 +212,8 @@ def _html_to_png_playwright(html_path: Path, png_path: Path) -> None:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page(viewport={"width": 1080, "height": 1080})
-            page.goto(f"file://{html_path.resolve()}")
+            page.goto(f"file://{html_path.resolve()}", wait_until="networkidle")
+            page.wait_for_timeout(500)
             page.screenshot(path=str(png_path.resolve()))
             browser.close()
     except Exception as e:
@@ -284,13 +243,6 @@ const puppeteer = require('puppeteer');
         )
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
         log.warning("Puppeteer screenshot failed (falling back to HTML only): %s", e)
-
-
-def _download_image(url: str, path: Path) -> None:
-    with httpx.Client(timeout=30) as client:
-        resp = client.get(url)
-        resp.raise_for_status()
-        path.write_bytes(resp.content)
 
 
 def _extract_code_block(content: str) -> dict | None:

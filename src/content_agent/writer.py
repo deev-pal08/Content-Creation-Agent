@@ -182,7 +182,6 @@ class ContentWriter:
 
         generators = [
             (self._generate_daily_update, ContentType.DAILY_UPDATE, Platform.TWITTER),
-            (self._generate_daily_update, ContentType.DAILY_UPDATE, Platform.LINKEDIN),
             (self._generate_linkedin_post, ContentType.THREAD, Platform.LINKEDIN),
             (self._generate_twitter_thread, ContentType.THREAD, Platform.TWITTER),
             (self._generate_hot_take, ContentType.HOT_TAKE, Platform.TWITTER),
@@ -345,8 +344,12 @@ def _build_notes_summary(notes: list[ObsidianNote]) -> str:
             for t in note.key_takeaways:
                 lines.append(f"  - {t}")
         if note.content:
-            content_preview = note.content[:500]
-            lines.append(f"Content: {content_preview}")
+            lines.append(f"Content: {note.content}")
+        if note.linked_content:
+            lines.append("Linked Notes (detailed references):")
+            for link_name, link_body in note.linked_content.items():
+                lines.append(f"  --- {link_name} ---")
+                lines.append(f"  {link_body}")
         parts.append("\n".join(lines))
     return "\n\n".join(parts)
 

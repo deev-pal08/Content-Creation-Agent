@@ -135,5 +135,5 @@ def test_str_enums():
     assert str(Platform.TWITTER) == "twitter"
     assert str(ContentType.HOT_TAKE) == "hot_take"
     assert str(ContentStatus.POSTED) == "posted"
-    assert str(ImageType.INFOGRAPHIC) == "infographic"
-    assert str(ImageGenerator.RECRAFT) == "recraft"
+    assert str(ImageType.DAY_CARD) == "day_card"
+    assert str(ImageGenerator.GPT4O) == "gpt4o"

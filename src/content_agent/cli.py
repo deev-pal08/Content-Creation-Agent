@@ -117,8 +117,6 @@ def daily(no_publish: bool, force: bool, date: str | None):
     img_producer = ImageProducer(
         output_dir=cfg.images.output_dir,
         brand_colors=cfg.images.brand_colors,
-        recraft_api_key=os.getenv("RECRAFT_API_KEY", ""),
-        ideogram_api_key=os.getenv("IDEOGRAM_API_KEY", ""),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
     )
     images = img_producer.generate_all_for_day(notes, day_number, target_date, code_challenge)

@@ -37,8 +37,6 @@ class BrandColors(BaseModel):
 
 
 class ImageConfig(BaseModel):
-    infographic_provider: str = "recraft"
-    explainer_provider: str = "ideogram"
     output_dir: str = "output/images"
     brand_colors: BrandColors = BrandColors()
 

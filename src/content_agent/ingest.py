@@ -52,6 +52,8 @@ def load_notes_for_date(vault_path: str | Path, date: str, glob: str = "**/*.md"
             continue
         if note.date == date:
             notes.append(note)
+
+    resolve_linked_notes(notes, vault)
     return notes
 
 
@@ -69,6 +71,18 @@ def load_all_notes(vault_path: str | Path, glob: str = "**/*.md") -> list[Obsidi
         except Exception:
             continue
     return notes
+
+
+def resolve_linked_notes(notes: list[ObsidianNote], vault: Path) -> None:
+    all_md = {md.stem: md for md in vault.glob("**/*.md") if not md.name.startswith(".")}
+    for note in notes:
+        for link_name in note.connections:
+            if link_name in all_md:
+                try:
+                    linked = parse_note(all_md[link_name])
+                    note.linked_content[link_name] = linked.content
+                except Exception:
+                    continue
 
 
 def _extract_title(content: str) -> str:
