@@ -148,33 +148,8 @@ def daily(no_publish: bool, force: bool, date: str | None):
     for img in images:
         click.echo(f"   - {img.image_type.value} via {img.generator.value}")
 
-    # Step 5: Generate video
-    click.echo("\n5. Generating video...")
-    video_asset = None
-    video_scripts = [p for p in pieces if p.content_type == "visual_lesson"]
-    if video_scripts:
-        from content_agent.video import VideoProducer
-        vid_producer = VideoProducer(
-            output_dir=cfg.video.output_dir,
-            openai_api_key=os.getenv("OPENAI_API_KEY", ""),
-            tts_model=cfg.llm.tts_model,
-            tts_voice=cfg.llm.tts_voice,
-            width=cfg.video.width,
-            height=cfg.video.height,
-            duration_target=cfg.video.duration_target,
-        )
-        video_asset = vid_producer.generate_for_day(
-            video_scripts[0].body, notes, day_number,
-        )
-        if video_asset.file_path:
-            click.echo(f"   Video rendered: {video_asset.file_path}")
-        else:
-            click.echo("   Video script generated (Remotion rendering not available)")
-    else:
-        click.echo("   No video script generated")
-
-    # Step 6: SEO optimization
-    click.echo("\n6. Optimizing SEO & hashtags...")
+    # Step 5: SEO optimization
+    click.echo("\n5. Optimizing SEO & hashtags...")
     from content_agent.seo import SEOOptimizer
     seo = SEOOptimizer(
         google_api_key=os.getenv("GOOGLE_API_KEY", ""),
@@ -185,8 +160,8 @@ def daily(no_publish: bool, force: bool, date: str | None):
     pieces = seo.optimize_content(pieces, all_trends)
     click.echo("   Hashtags assigned to all content pieces")
 
-    # Step 7: Persist to DB
-    click.echo("\n7. Saving to database...")
+    # Step 6: Persist to DB
+    click.echo("\n6. Saving to database...")
     content_ids = []
     for piece in pieces:
         cid = store.save_content_piece(
@@ -212,15 +187,6 @@ def daily(no_publish: bool, force: bool, date: str | None):
             metadata=img.metadata,
         )
 
-    if video_asset:
-        store.save_video(
-            file_path=video_asset.file_path,
-            script=video_asset.script,
-            narration_path=video_asset.narration_path,
-            duration_seconds=video_asset.duration_seconds,
-            scenes=video_asset.scenes,
-        )
-
     for report in trend_reports:
         store.save_trend_report(
             report.platform,
@@ -233,15 +199,14 @@ def daily(no_publish: bool, force: bool, date: str | None):
         notes_count=len(notes),
         content_count=len(pieces),
         images_count=len(images),
-        video_generated=video_asset is not None and bool(video_asset.file_path),
     )
     click.echo(f"   Saved {len(pieces)} pieces, {len(images)} images, {len(trend_reports)} trend reports")
 
-    # Step 8: Publish
+    # Step 7: Publish
     if no_publish:
-        click.echo("\n8. Skipping publish (--no-publish)")
+        click.echo("\n7. Skipping publish (--no-publish)")
     else:
-        click.echo("\n8. Scheduling posts...")
+        click.echo("\n7. Scheduling posts...")
         from content_agent.publisher import BufferPublisher
         publisher = BufferPublisher(
             access_token=os.getenv("BUFFER_ACCESS_TOKEN", ""),
@@ -263,7 +228,6 @@ def daily(no_publish: bool, force: bool, date: str | None):
     click.echo(f"  Notes: {len(notes)}")
     click.echo(f"  Content pieces: {len(pieces)}")
     click.echo(f"  Images: {len(images)}")
-    click.echo(f"  Video: {'Yes' if video_asset and video_asset.file_path else 'Script only'}")
 
     store.close()
 
@@ -335,12 +299,10 @@ def init():
 
     from pathlib import Path
     Path(cfg.images.output_dir).mkdir(parents=True, exist_ok=True)
-    Path(cfg.video.output_dir).mkdir(parents=True, exist_ok=True)
 
     click.echo("Content Creation Agent initialized.")
     click.echo(f"  Database: {store.db_path}")
     click.echo(f"  Image output: {cfg.images.output_dir}")
-    click.echo(f"  Video output: {cfg.video.output_dir}")
     click.echo(f"  Obsidian vault: {cfg.obsidian.vault_path}")
 
     store.close()

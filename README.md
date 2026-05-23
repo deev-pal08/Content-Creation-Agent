@@ -1,20 +1,19 @@
 # Content Creation Agent
 
-An AI-powered educational content platform that transforms daily Obsidian learning notes into multi-platform social media content. Security + AI topics explained so clearly a 16-year-old can follow — one note in, six content pieces + five image types out.
+An AI-powered educational content platform that transforms daily Obsidian learning notes into multi-platform social media content. Security + AI topics explained so clearly a 16-year-old can follow — one note in, five content pieces + five image types out.
 
 ## What It Does
 
 Write an Obsidian note about what you studied today. The agent reads it (including linked notes), researches current trends, generates educational content for every major platform, creates visual assets, optimizes for SEO, and saves everything to a database ready for scheduling.
 
 **Per day, the agent produces:**
-- 6 educational text pieces (daily lesson, deep dive, concept breakdown, surprising fact, micro lesson, video script)
+- 5 educational text pieces (daily lesson, deep dive, concept breakdown, surprising fact, micro lesson)
 - 1 AI-generated concept art image (GPT-4o)
 - 1 day card (concept art + text overlay)
 - 1 "Spot the Bug" code challenge image (when the topic fits)
 - 1 comparison card — vulnerable vs secure code side-by-side
 - 1 key fact card — shareable statistic/fact
 - 1 carousel — multi-slide educational breakdown (cover + slides)
-- 1 TTS narration audio file
 - Platform-optimized hashtags and posting times
 
 ## Architecture
@@ -35,16 +34,13 @@ Obsidian Note (markdown + YAML frontmatter)
 [4. Images] ── GPT-4o concept art → HTML/CSS overlay → Playwright screenshot
     |           + comparison card, key fact card, carousel slides (all HTML→PNG)
     v
-[5. Video] ── OpenAI TTS narration → Remotion assembly (WIP)
+[5. SEO] ── Gemini Flash hashtag optimization + posting time calculation
     |
     v
-[6. SEO] ── Gemini Flash hashtag optimization + posting time calculation
+[6. Persist] ── SQLite (content, images, trends, run history)
     |
     v
-[7. Persist] ── SQLite (content, images, videos, trends, run history)
-    |
-    v
-[8. Publish] ── Buffer API scheduling (not yet connected)
+[7. Publish] ── Buffer API scheduling (not yet connected)
 ```
 
 ## Educational Content Philosophy
@@ -65,10 +61,9 @@ This agent doesn't journal — it teaches. Every piece of content follows these 
 | Grok 3 Mini | xAI | X/Twitter trends + surprising facts | ~$0.02 |
 | Gemini 2.5 Flash | Google | YouTube trends + SEO/hashtags | ~$0.01 |
 | gpt-image-1 | OpenAI | Concept art for day cards | ~$0.07 |
-| gpt-4o-mini-tts | OpenAI | Video narration | ~$0.02 |
 | Perplexity Sonar | Perplexity | Web trend research | ~$0.01 |
 
-**Total: ~$0.25/day (~$7.50/month)** + Buffer scheduling ($15/month)
+**Total: ~$0.21/day (~$6.30/month)** + Buffer scheduling ($15/month)
 
 ## Content Types
 
@@ -79,7 +74,6 @@ This agent doesn't journal — it teaches. Every piece of content follows these 
 | Concept Breakdown | LinkedIn | Claude | "Here's how X works" with analogies, 150-300 words |
 | Surprising Fact | Twitter | Grok | Attention-grabbing fact/stat tied to trends |
 | Micro Lesson | Instagram | Claude | 50-100 word accessible educational snippet |
-| Visual Lesson | YouTube/Reels | Claude | 30-60s narrated explainer script |
 | Code Challenge | Twitter/LinkedIn | Claude + HTML | "Spot the Bug" — realistic vulnerable code image |
 
 ## Image Types
@@ -215,7 +209,6 @@ src/content_agent/
     research.py       # Trend research (Grok, Perplexity, Gemini)
     writer.py         # Educational content writing (Claude, Grok) + image content generation
     images.py         # Image generation (GPT-4o + HTML templates + Playwright)
-    video.py          # Video generation (TTS + Remotion)
     seo.py            # SEO optimization (Gemini Flash)
     publisher.py      # Buffer API scheduling
     state/store.py    # SQLite state manager
@@ -225,7 +218,7 @@ src/content_agent/
         comparison_card.html  # Vulnerable vs Secure side-by-side
         key_fact.html         # Bold shareable fact/stat
         carousel_slide.html   # Multi-slide educational series
-tests/                # 99 tests
+tests/                # 89 tests
 config.yaml           # Pipeline configuration
 ```
 
@@ -239,23 +232,21 @@ uv run pytest tests/ -v
 uv run pytest tests/test_writer.py -v
 ```
 
-99 tests across 9 files covering config validation, data models, SQLite operations, Obsidian parsing, trend research parsing, educational content generation, SEO optimization, all 5 image template types, and video script parsing.
+89 tests across 8 files covering config validation, data models, SQLite operations, Obsidian parsing, trend research parsing, educational content generation, SEO optimization, and all 5 image template types.
 
 ## Roadmap
 
 - [x] Notes ingestion with linked note resolution
 - [x] Multi-source trend research (Grok + Perplexity + Gemini)
-- [x] 6-piece educational content generation (Claude + Grok)
+- [x] 5-piece educational content generation (Claude + Grok)
 - [x] AI code challenge generation (Claude decides topic fit)
 - [x] Comparison card generation (vulnerable vs secure code)
 - [x] Key fact card generation (shareable statistics)
 - [x] Carousel generation (multi-slide educational series)
 - [x] GPT-4o concept art + HTML/CSS day cards
 - [x] 5 HTML/CSS image templates (Playwright rendering)
-- [x] TTS narration generation (OpenAI)
 - [x] SEO/hashtag optimization (Gemini Flash)
 - [x] SQLite persistence with day tracking
-- [ ] Remotion video assembly (React components)
 - [ ] Buffer API integration (post scheduling)
 - [ ] Engagement tracking and analytics
 

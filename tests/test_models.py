@@ -12,7 +12,6 @@ from content_agent.models import (
     Platform,
     TrendItem,
     TrendReport,
-    VideoAsset,
 )
 
 
@@ -99,16 +98,6 @@ def test_image_asset():
     )
     assert asset.image_type == ImageType.DAY_CARD
     assert asset.generator == ImageGenerator.PUPPETEER
-
-
-def test_video_asset():
-    asset = VideoAsset(
-        script="[Hook] Did you know SSRF can...",
-        duration_seconds=45.0,
-        scenes=[{"description": "Hook", "narration": "Did you know..."}],
-    )
-    assert asset.duration_seconds == 45.0
-    assert len(asset.scenes) == 1
 
 
 def test_pipeline_result():

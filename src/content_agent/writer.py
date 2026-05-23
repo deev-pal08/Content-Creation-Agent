@@ -126,34 +126,6 @@ Rules:
 
 Return ONLY the caption text."""
 
-VISUAL_LESSON_PROMPT = """You are a security educator writing a 30-45 second video script that teaches through storytelling.
-
-Study material:
-{notes_summary}
-
-Structure your script as a STORY:
-1. [Scene 1 — Hook]: Start with a relatable character or scenario. "Imagine you're a developer..." / "Picture this: a user clicks..."
-2. [Scene 2 — The Problem]: Show what goes wrong. Make the viewer feel the danger.
-3. [Scene 3 — The Explanation]: Break down HOW the vulnerability/concept works. Use the simplest possible language.
-4. [Scene 4 — The Impact]: Real-world consequence. Actual numbers, actual breaches, actual stakes.
-5. [Scene 5 — The Fix/Takeaway]: What to do about it. One clear, actionable lesson.
-
-Rules:
-- Include scene descriptions in [brackets] for visual cues
-- Target 80-120 words of narration (30-45 seconds spoken)
-- Think Kurzgesagt meets cybersecurity — visual, engaging, educational
-- No jargon without immediately explaining it
-- A 16-year-old watching this should understand AND find it interesting
-- NEVER say "I learned" or "my journey" — you are a teacher
-
-Return the script in this format:
-[Scene description]
-Narration text
-
-[Scene description]
-Narration text
-..."""
-
 CODE_CHALLENGE_PROMPT = """You are a security educator creating a "Spot the Bug" code review challenge.
 
 Study material:
@@ -296,7 +268,6 @@ class ContentWriter:
             (self._generate_concept_breakdown, ContentType.CONCEPT_BREAKDOWN, Platform.TWITTER),
             (self._generate_surprising_fact, ContentType.SURPRISING_FACT, Platform.TWITTER),
             (self._generate_micro_lesson, ContentType.MICRO_LESSON, Platform.INSTAGRAM),
-            (self._generate_visual_lesson, ContentType.VISUAL_LESSON, Platform.YOUTUBE),
         ]
 
         for gen_func, content_type, platform in generators:
@@ -364,13 +335,6 @@ class ContentWriter:
         prompt = MICRO_LESSON_PROMPT.format(
             day_number=day_number, notes_summary=notes_summary,
         )
-        return self._call_claude(prompt)
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_visual_lesson(
-        self, notes_summary: str, trends_summary: str, day_number: int,
-    ) -> str:
-        prompt = VISUAL_LESSON_PROMPT.format(notes_summary=notes_summary)
         return self._call_claude(prompt)
 
     def generate_code_challenge(

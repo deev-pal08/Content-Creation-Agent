@@ -40,18 +40,6 @@ CREATE TABLE IF NOT EXISTS images (
     FOREIGN KEY (content_piece_id) REFERENCES content_pieces(id)
 );
 
-CREATE TABLE IF NOT EXISTS videos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_path TEXT NOT NULL,
-    script TEXT DEFAULT '',
-    narration_path TEXT DEFAULT '',
-    duration_seconds REAL DEFAULT 0.0,
-    scenes_json TEXT DEFAULT '[]',
-    content_piece_id INTEGER,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (content_piece_id) REFERENCES content_pieces(id)
-);
-
 CREATE TABLE IF NOT EXISTS trend_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     platform TEXT NOT NULL,
@@ -66,7 +54,6 @@ CREATE TABLE IF NOT EXISTS daily_runs (
     notes_count INTEGER DEFAULT 0,
     content_count INTEGER DEFAULT 0,
     images_count INTEGER DEFAULT 0,
-    video_generated INTEGER DEFAULT 0,
     total_cost REAL DEFAULT 0.0,
     pipeline_result_json TEXT DEFAULT '{}',
     created_at TEXT NOT NULL
@@ -248,31 +235,6 @@ class ContentStore:
         self._conn.commit()
         return cursor.lastrowid or 0
 
-    # --- Videos ---
-
-    def save_video(
-        self,
-        file_path: str,
-        script: str = "",
-        narration_path: str = "",
-        duration_seconds: float = 0.0,
-        scenes: list[dict] | None = None,
-        content_piece_id: int | None = None,
-    ) -> int:
-        cursor = self._conn.execute(
-            """INSERT INTO videos
-               (file_path, script, narration_path, duration_seconds,
-                scenes_json, content_piece_id, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (
-                file_path, script, narration_path, duration_seconds,
-                json.dumps(scenes or []), content_piece_id,
-                datetime.now(UTC).isoformat(),
-            ),
-        )
-        self._conn.commit()
-        return cursor.lastrowid or 0
-
     # --- Trend Reports ---
 
     def save_trend_report(self, platform: str, trends: list[dict]) -> int:
@@ -306,18 +268,17 @@ class ContentStore:
         notes_count: int = 0,
         content_count: int = 0,
         images_count: int = 0,
-        video_generated: bool = False,
         total_cost: float = 0.0,
         pipeline_result: dict | None = None,
     ) -> int:
         cursor = self._conn.execute(
             """INSERT INTO daily_runs
                (date, day_number, notes_count, content_count, images_count,
-                video_generated, total_cost, pipeline_result_json, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                total_cost, pipeline_result_json, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 date, day_number, notes_count, content_count, images_count,
-                int(video_generated), total_cost,
+                total_cost,
                 json.dumps(pipeline_result or {}),
                 datetime.now(UTC).isoformat(),
             ),

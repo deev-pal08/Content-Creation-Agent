@@ -141,16 +141,6 @@ def test_save_and_get_image(store):
     assert iid > 0
 
 
-def test_save_and_get_video(store):
-    vid = store.save_video(
-        file_path="/output/day_1.mp4",
-        script="[Hook] Did you know...",
-        duration_seconds=45.0,
-        scenes=[{"description": "Hook", "narration": "Did you know..."}],
-    )
-    assert vid > 0
-
-
 def test_trend_report_save_and_get(store):
     tid = store.save_trend_report("twitter", [
         {"topic": "AI Security", "relevance_score": 0.9, "context": "New attacks"},

@@ -22,8 +22,6 @@ class LLMConfig(BaseModel):
     trend_model_youtube: str = "gemini-2.5-flash"
     seo_model: str = "gemini-2.5-flash"
     hot_take_model: str = "grok-3-mini"
-    tts_model: str = "gpt-4o-mini-tts"
-    tts_voice: str = "nova"
     max_tokens: int = 4096
 
 
@@ -39,13 +37,6 @@ class BrandColors(BaseModel):
 class ImageConfig(BaseModel):
     output_dir: str = "output/images"
     brand_colors: BrandColors = BrandColors()
-
-
-class VideoConfig(BaseModel):
-    output_dir: str = "output/videos"
-    duration_target: int = 45
-    width: int = 1080
-    height: int = 1920
 
 
 class SEOConfig(BaseModel):
@@ -96,7 +87,6 @@ class AppConfig(BaseModel):
     obsidian: ObsidianConfig
     llm: LLMConfig = LLMConfig()
     images: ImageConfig = ImageConfig()
-    video: VideoConfig = VideoConfig()
     seo: SEOConfig = SEOConfig()
     publisher: PublisherConfig = PublisherConfig()
     schedule: ScheduleConfig = ScheduleConfig()

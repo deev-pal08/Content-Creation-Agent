@@ -26,8 +26,6 @@ def test_config_defaults():
     assert cfg.day_counter_start == 1
     assert cfg.about_me == "AboutMe.md"
     assert cfg.seo.default_hashtags["twitter"] == ["cybersecurity", "infosec", "AI"]
-    assert cfg.video.width == 1080
-    assert cfg.video.height == 1920
 
 
 def test_config_posting_time_validation():

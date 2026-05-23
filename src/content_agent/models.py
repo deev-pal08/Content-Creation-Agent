@@ -21,7 +21,6 @@ class ContentType(StrEnum):
     CONCEPT_BREAKDOWN = "concept_breakdown"
     SURPRISING_FACT = "surprising_fact"
     MICRO_LESSON = "micro_lesson"
-    VISUAL_LESSON = "visual_lesson"
     CODE_CHALLENGE = "code_challenge"
 
 
@@ -108,14 +107,6 @@ class ImageAsset(BaseModel):
     metadata: dict = Field(default_factory=dict)
 
 
-class VideoAsset(BaseModel):
-    file_path: str = ""
-    script: str = ""
-    narration_path: str = ""
-    duration_seconds: float = 0.0
-    scenes: list[dict] = Field(default_factory=list)
-
-
 # --- Pipeline Models ---
 
 
@@ -126,5 +117,4 @@ class DailyPipelineResult(BaseModel):
     trend_reports: list[TrendReport] = Field(default_factory=list)
     content_pieces: list[ContentPiece] = Field(default_factory=list)
     images: list[ImageAsset] = Field(default_factory=list)
-    video: VideoAsset | None = None
     total_cost: float = 0.0
