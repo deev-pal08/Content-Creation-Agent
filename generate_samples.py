@@ -7,6 +7,10 @@ from content_agent.images import _accent_for_day
 TEMPLATES_DIR = Path("src/content_agent/templates")
 OUTPUT_DIR = Path("output/samples")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+for old in OUTPUT_DIR.glob("*.html"):
+    old.unlink()
+for old in OUTPUT_DIR.glob("*.png"):
+    old.unlink()
 
 env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
 
