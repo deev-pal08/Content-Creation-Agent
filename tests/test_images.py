@@ -146,3 +146,89 @@ def test_brand_colors_in_template(tmp_path):
     html_content = (tmp_path / "images" / "day_1_card.html").read_text()
     assert "#000000" in html_content
     assert "#ff0000" in html_content
+
+
+def test_comparison_card_html_generation(tmp_path):
+    producer = ImageProducer(output_dir=str(tmp_path / "images"))
+    asset = producer.generate_comparison_card(
+        title="Query Construction",
+        vulnerable_label="String Concatenation",
+        vulnerable_code="query = f'SELECT * FROM users WHERE name = {name}'",
+        secure_label="Parameterized Query",
+        secure_code="cursor.execute('SELECT * FROM users WHERE name = %s', (name,))",
+        language="python",
+        explanation="Parameterized queries separate code from data.",
+        day_number=7,
+    )
+    assert asset.image_type == "comparison_card"
+    assert asset.generator in ("puppeteer", "playwright")
+
+    html_path = tmp_path / "images" / "day_7_comparison.html"
+    assert html_path.exists()
+    html_content = html_path.read_text()
+    assert "Vulnerable" in html_content
+    assert "Secure" in html_content
+    assert "DAY 7" in html_content
+
+
+def test_key_fact_card_html_generation(tmp_path):
+    producer = ImageProducer(output_dir=str(tmp_path / "images"))
+    asset = producer.generate_key_fact_card(
+        headline="90% of cloud breaches start with SSRF",
+        explanation="SSRF lets attackers access internal metadata endpoints.",
+        source="OWASP Top 10",
+        day_number=3,
+    )
+    assert asset.image_type == "key_fact_card"
+    assert asset.generator in ("puppeteer", "playwright")
+
+    html_path = tmp_path / "images" / "day_3_keyfact.html"
+    assert html_path.exists()
+    html_content = html_path.read_text()
+    assert "90%" in html_content
+    assert "OWASP" in html_content
+
+
+def test_carousel_html_generation(tmp_path):
+    producer = ImageProducer(output_dir=str(tmp_path / "images"))
+    carousel_data = {
+        "title": "Understanding SSRF",
+        "subtitle": "How attackers talk to your internal services",
+        "slides": [
+            {"heading": "What is SSRF?", "body": "Server-Side Request Forgery explained.", "footer": ""},
+            {"heading": "How it works", "body": "The attacker tricks the server.", "footer": "Like mail forwarding"},
+        ],
+    }
+    assets = producer.generate_carousel(carousel_data, day_number=4)
+    assert len(assets) == 3  # 1 cover + 2 slides
+    assert all(a.image_type == "carousel_slide" for a in assets)
+
+    cover_html = (tmp_path / "images" / "day_4_carousel_0.html").read_text()
+    assert "Understanding SSRF" in cover_html
+    assert "SWIPE TO LEARN" in cover_html
+
+    slide_html = (tmp_path / "images" / "day_4_carousel_1.html").read_text()
+    assert "1/2" in slide_html
+
+
+def test_generate_all_with_all_image_types(tmp_path):
+    from content_agent.models import ObsidianNote
+    producer = ImageProducer(output_dir=str(tmp_path / "images"))
+    note = ObsidianNote(
+        title="SSRF", track="web_appsec", task_type="read",
+        date="2026-05-23", file_path="test.md", content="Learned SSRF",
+        key_takeaways=["Metadata endpoints"], tags=["ssrf"],
+    )
+    assets = producer.generate_all_for_day(
+        [note], day_number=5, date="2026-05-23",
+        code_challenge={"code": "requests.get(url)", "language": "python", "vulnerability": "SSRF", "hint": "Check URL"},
+        comparison={"title": "URL Validation", "vulnerable_label": "None", "vulnerable_code": "get(url)", "secure_label": "Allowlist", "secure_code": "if url in ALLOWED: get(url)", "language": "python", "explanation": "Validate URLs"},
+        key_fact={"headline": "SSRF is #1", "explanation": "Most common cloud attack", "source": "OWASP"},
+        carousel={"title": "SSRF Guide", "subtitle": "Learn SSRF", "slides": [{"heading": "Slide 1", "body": "Content", "footer": ""}]},
+    )
+    types = [a.image_type for a in assets]
+    assert "day_card" in types
+    assert "code_challenge" in types
+    assert "comparison_card" in types
+    assert "key_fact_card" in types
+    assert "carousel_slide" in types

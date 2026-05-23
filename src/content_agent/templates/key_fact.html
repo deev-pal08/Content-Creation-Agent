@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1080px;
+    background: {{ colors.primary }};
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: {{ colors.text_light }};
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .accent-line {
+    width: 80px;
+    height: 4px;
+    background: {{ colors.highlight }};
+    margin-bottom: 50px;
+    border-radius: 2px;
+  }
+  .headline {
+    font-size: 48px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.3;
+    max-width: 900px;
+    margin-bottom: 40px;
+    color: {{ colors.text_light }};
+  }
+  .divider {
+    width: 60px;
+    height: 2px;
+    background: {{ colors.accent }};
+    margin-bottom: 40px;
+  }
+  .explanation {
+    font-size: 26px;
+    text-align: center;
+    line-height: 1.6;
+    max-width: 800px;
+    color: #b0b0b0;
+    margin-bottom: 40px;
+  }
+  .source {
+    font-size: 18px;
+    color: {{ colors.highlight }};
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .badge {
+    position: absolute;
+    top: 40px;
+    right: 50px;
+    background: {{ colors.highlight }};
+    color: {{ colors.text_light }};
+    font-size: 18px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 8px;
+  }
+  .brand {
+    position: absolute;
+    bottom: 40px;
+    font-size: 16px;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+  {% if day_number %}<div class="badge">DAY {{ day_number }}</div>{% endif %}
+  <div class="accent-line"></div>
+  <div class="headline">{{ headline }}</div>
+  <div class="divider"></div>
+  <div class="explanation">{{ explanation }}</div>
+  {% if source %}<div class="source">{{ source }}</div>{% endif %}
+  <div class="brand">Security Learning Journey</div>
+</body>
+</html>

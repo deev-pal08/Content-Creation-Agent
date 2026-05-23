@@ -63,7 +63,7 @@ def test_trend_report():
 
 def test_content_piece_defaults():
     piece = ContentPiece(
-        content_type=ContentType.DAILY_UPDATE,
+        content_type=ContentType.DAILY_LESSON,
         platform=Platform.TWITTER,
         body="Day 1: Learning SSRF",
         day_number=1,
@@ -76,7 +76,7 @@ def test_content_piece_defaults():
 
 def test_content_piece_full():
     piece = ContentPiece(
-        content_type=ContentType.THREAD,
+        content_type=ContentType.DEEP_DIVE,
         platform=Platform.LINKEDIN,
         title="Day 5",
         body="Today I learned about prompt injection...",
@@ -118,7 +118,7 @@ def test_pipeline_result():
         notes_ingested=[ObsidianNote(file_path="/vault/test.md")],
         content_pieces=[
             ContentPiece(
-                content_type=ContentType.DAILY_UPDATE,
+                content_type=ContentType.DAILY_LESSON,
                 platform=Platform.TWITTER,
                 body="test",
                 day_number=1,
@@ -133,7 +133,7 @@ def test_pipeline_result():
 
 def test_str_enums():
     assert str(Platform.TWITTER) == "twitter"
-    assert str(ContentType.HOT_TAKE) == "hot_take"
+    assert str(ContentType.SURPRISING_FACT) == "surprising_fact"
     assert str(ContentStatus.POSTED) == "posted"
     assert str(ImageType.DAY_CARD) == "day_card"
     assert str(ImageGenerator.GPT4O) == "gpt4o"

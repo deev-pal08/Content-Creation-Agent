@@ -16,12 +16,13 @@ class Platform(StrEnum):
 
 
 class ContentType(StrEnum):
-    DAILY_UPDATE = "daily_update"
+    DAILY_LESSON = "daily_lesson"
+    DEEP_DIVE = "deep_dive"
+    CONCEPT_BREAKDOWN = "concept_breakdown"
+    SURPRISING_FACT = "surprising_fact"
+    MICRO_LESSON = "micro_lesson"
+    VISUAL_LESSON = "visual_lesson"
     CODE_CHALLENGE = "code_challenge"
-    THREAD = "thread"
-    HOT_TAKE = "hot_take"
-    CAPTION = "caption"
-    VIDEO_SCRIPT = "video_script"
 
 
 class ContentStatus(StrEnum):
@@ -35,8 +36,9 @@ class ContentStatus(StrEnum):
 class ImageType(StrEnum):
     DAY_CARD = "day_card"
     CODE_CHALLENGE = "code_challenge"
-    INFOGRAPHIC = "infographic"
-    CONCEPT_EXPLAINER = "concept_explainer"
+    COMPARISON_CARD = "comparison_card"
+    KEY_FACT_CARD = "key_fact_card"
+    CAROUSEL_SLIDE = "carousel_slide"
 
 
 class ImageGenerator(StrEnum):

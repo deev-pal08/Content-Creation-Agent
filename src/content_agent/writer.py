@@ -1,4 +1,4 @@
-"""Content writer — Claude Sonnet (posts, threads, scripts) + Grok (hot takes)."""
+"""Content writer — Claude Sonnet (educational posts, threads, scripts) + Grok (surprising facts)."""
 
 from __future__ import annotations
 
@@ -14,87 +14,137 @@ from content_agent.models import ContentPiece, ContentType, ObsidianNote, Platfo
 
 log = logging.getLogger(__name__)
 
-LINKEDIN_PROMPT = """Write a LinkedIn post about today's security learning.
-You are a security engineer sharing your daily learning journey (Day {day_number}).
+DAILY_LESSON_PROMPT = """You are a security educator creating a concise daily lesson for Twitter.
+Topic: Day {day_number} of a security + AI education series.
 
-Today's learning notes:
+Study material (your source — teach FROM this, do not summarize it):
 {notes_summary}
 
-Trending topics to consider weaving in:
+Your job: Teach ONE concept from today's material so clearly that a 16-year-old could explain it to a friend.
+
+Rules:
+- Open with a real-world analogy or scenario (not "Today I learned")
+- Explain the concept — what it is, why it matters, how it works
+- Include one concrete example or real incident
+- End with a practical takeaway the reader can use
+- 100-200 words. No emojis. No hashtags.
+- NEVER use phrases like "I learned", "my journey", "today I explored", "I discovered"
+- Write as a teacher, not a student. You are TEACHING, not journaling.
+- Tone: clear, direct, genuinely interesting — like a smart friend explaining something cool
+
+Return ONLY the post text."""
+
+DEEP_DIVE_PROMPT = """You are a security educator writing an in-depth LinkedIn lesson.
+Day {day_number} of a security + AI education series.
+
+Study material (your source — teach FROM this, do not summarize it):
+{notes_summary}
+
+Trending topics to connect if relevant (ignore if they don't fit naturally):
 {trends_summary}
 
-Guidelines:
-- Professional but authentic tone — not corporate, not casual
-- Start with a hook (question, surprising fact, or bold statement)
-- Share what you learned and why it matters
-- End with a question or call to action for engagement
-- 150-300 words. No emojis. No hashtags in the body (they go separately).
-- Write as a first-person narrative, not a listicle
+Structure your post exactly like this:
+1. HOOK (1-2 sentences): A surprising fact, counterintuitive truth, or "what if" scenario that creates curiosity
+2. ANALOGY (1-2 sentences): Explain the core concept using a real-world analogy a teenager would understand
+3. HOW IT WORKS (3-5 sentences): The technical explanation — clear, specific, with a concrete example
+4. WHY IT MATTERS (2-3 sentences): Real-world impact — reference actual breaches, incidents, or statistics if available
+5. WHAT YOU CAN DO (1-2 sentences): Actionable defense or takeaway the reader can apply
+6. DISCUSSION (1 sentence): End with a thought-provoking question that invites genuine discussion
 
-Return ONLY the post text, nothing else."""
+Rules:
+- 250-400 words. No emojis. No hashtags in body.
+- NEVER say "I learned", "my journey", "today I discovered"
+- Write as an educator who deeply understands this topic
+- Use concrete examples, not abstract statements
+- A 16-year-old should follow the logic even without knowing all the terms
+- If you reference a vulnerability or attack, show HOW it works, not just THAT it exists
 
-TWITTER_THREAD_PROMPT = """Write a Twitter/X thread explaining a security concept from today's learning.
-Day {day_number} of your security learning journey.
+Return ONLY the post text."""
 
-Today's notes:
+CONCEPT_BREAKDOWN_PROMPT = """You are a security educator creating a Twitter thread that teaches a concept step by step.
+Day {day_number} of a security + AI education series.
+
+Study material (teach FROM this):
 {notes_summary}
 
-Guidelines:
-- 4-6 tweets, each under 280 characters
-- First tweet is the hook — make it compelling
-- Break down a technical concept simply
-- Last tweet: summary + what's next
+Structure:
+- Tweet 1: Hook — a surprising claim, question, or scenario that creates curiosity
+- Tweets 2-4: Teach the concept progressively. Each tweet adds ONE new idea. Use analogies.
+- Tweet 5: Real-world example or consequence (actual breach, real tool, specific scenario)
+- Tweet 6: Actionable takeaway — what should the reader do or remember?
+
+Rules:
+- 5-6 tweets, each under 280 characters
 - Use numbering: 1/, 2/, etc.
-- No emojis. No hashtags in thread body.
+- Each tweet must be understandable on its own AND build on the previous
+- Use analogies to explain technical concepts ("Think of it like...")
+- No emojis. No hashtags.
+- NEVER say "I learned", "my journey" — you are TEACHING
+- Write so a curious 16-year-old could follow the entire thread
 
 Return each tweet on its own line, separated by blank lines."""
 
-HOT_TAKE_PROMPT = """Write a spicy, witty hot take tweet about today's security learning.
-You're a security engineer who just learned something interesting.
+SURPRISING_FACT_PROMPT = """You are a security educator writing a single tweet that stops people mid-scroll.
 
-Today's learning:
+Study material:
 {notes_summary}
 
-Current trending topics on X:
+Trending topics on X right now:
 {trends_summary}
 
-Guidelines:
+Your job: Extract the most surprising, counterintuitive, or alarming FACT from today's material and present it in a way that educates through shock value.
+
+Rules:
 - One single tweet, under 280 characters
-- Be opinionated, witty, slightly provocative
-- Reference a trending topic if relevant
-- The kind of tweet that makes security people stop scrolling
+- Must be FACTUALLY accurate — based on the study material, not invented
+- Format options: "X% of Y...", "Most people think X. Actually, Y.", "Fun fact: [genuinely alarming thing]"
+- The reader should learn something real, not just be entertained
+- If a trending topic connects naturally, weave it in. If not, skip trends entirely.
 - No emojis. No hashtags.
+- NOT a personal opinion — a genuine educational fact that surprises
 
 Return ONLY the tweet text."""
 
-INSTAGRAM_CAPTION_PROMPT = """Write an Instagram caption for a security learning post.
-Day {day_number} of your security journey.
+MICRO_LESSON_PROMPT = """You are a security educator writing an Instagram caption that teaches one concept.
+Day {day_number} of a security + AI education series.
 
-Today's notes:
+Study material:
 {notes_summary}
 
-Guidelines:
-- 50-100 words
-- Accessible to non-experts
-- Start with a bold statement about what you learned
-- End with engagement prompt
-- Conversational tone
-- No hashtags in caption (added separately)
+Your job: Teach exactly ONE concept so simply that someone with zero security knowledge walks away understanding it.
+
+Rules:
+- 60-120 words
+- Start with a bold, attention-grabbing statement about the concept
+- Explain it using a simple analogy or everyday comparison
+- Give one specific example
+- End with "Now you know" moment or a question that makes the reader feel smart
+- Conversational tone — like explaining to a curious friend at a coffee shop
+- No hashtags (added separately). No emojis.
+- NEVER say "I learned", "my journey", "today I explored"
+- A 16-year-old should understand every sentence
 
 Return ONLY the caption text."""
 
-VIDEO_SCRIPT_PROMPT = """Write a 30-60 second video script explaining a security concept from today's learning.
+VISUAL_LESSON_PROMPT = """You are a security educator writing a 30-45 second video script that teaches through storytelling.
 
-Today's notes:
+Study material:
 {notes_summary}
 
-Guidelines:
-- Narration script for a short explainer video (Instagram Reel / YouTube Short)
-- Start with a hook in the first 3 seconds ("Did you know..." / "Here's how...")
-- Explain one concept clearly with a simple example
-- End with a takeaway
+Structure your script as a STORY:
+1. [Scene 1 — Hook]: Start with a relatable character or scenario. "Imagine you're a developer..." / "Picture this: a user clicks..."
+2. [Scene 2 — The Problem]: Show what goes wrong. Make the viewer feel the danger.
+3. [Scene 3 — The Explanation]: Break down HOW the vulnerability/concept works. Use the simplest possible language.
+4. [Scene 4 — The Impact]: Real-world consequence. Actual numbers, actual breaches, actual stakes.
+5. [Scene 5 — The Fix/Takeaway]: What to do about it. One clear, actionable lesson.
+
+Rules:
 - Include scene descriptions in [brackets] for visual cues
-- Target 80-120 words of narration (roughly 30-45 seconds spoken)
+- Target 80-120 words of narration (30-45 seconds spoken)
+- Think Kurzgesagt meets cybersecurity — visual, engaging, educational
+- No jargon without immediately explaining it
+- A 16-year-old watching this should understand AND find it interesting
+- NEVER say "I learned" or "my journey" — you are a teacher
 
 Return the script in this format:
 [Scene description]
@@ -104,17 +154,17 @@ Narration text
 Narration text
 ..."""
 
-CODE_CHALLENGE_PROMPT = """You are a security engineer creating a "Spot the Bug" code review challenge based on today's learning.
+CODE_CHALLENGE_PROMPT = """You are a security educator creating a "Spot the Bug" code review challenge.
 
-Today's learning notes:
+Study material:
 {notes_summary}
 
 Your task:
-1. Analyze what was learned today
+1. Analyze the study material
 2. Decide whether a realistic code review challenge can be created from this topic
-3. If yes, write a short, realistic code snippet (8-20 lines) that contains a subtle security vulnerability related to today's learning
+3. If yes, write a short, realistic code snippet (8-20 lines) that contains a subtle security vulnerability related to the topic
 
-If the topic is too theoretical or abstract to create a realistic vulnerable code snippet, respond with exactly: NO_CHALLENGE
+If the topic is too theoretical or abstract for a code challenge, respond with exactly: NO_CHALLENGE
 
 Otherwise, respond with ONLY valid JSON (no markdown fencing, no extra text):
 {{
@@ -130,22 +180,82 @@ Guidelines for the code:
 - Use realistic function/variable names
 - Keep it 8-20 lines
 - Common languages: python, javascript, go, java, php
-- The vulnerability MUST relate to what was actually learned today"""
+- The vulnerability MUST relate to the study material"""
 
-DAILY_UPDATE_PROMPT = """Write a daily update post for Day {day_number} of the security learning journey.
+COMPARISON_PROMPT = """You are a security educator creating a "Vulnerable vs Secure" code comparison.
 
-Today's completed tasks and learnings:
+Study material:
 {notes_summary}
 
-Guidelines:
-- Brief progress update format: "Day {day_number}: [Topic]"
-- What you worked on (1-2 sentences)
-- Key insight or takeaway (1-2 sentences)
-- What's next (1 sentence)
-- 80-150 words total
-- Authentic, journaling tone
+Your task: Create a side-by-side comparison showing the WRONG way and the RIGHT way to handle a security concern from today's topic.
 
-Return ONLY the post text."""
+If the topic doesn't lend itself to a code comparison, respond with exactly: NO_COMPARISON
+
+Otherwise, respond with ONLY valid JSON (no markdown fencing, no extra text):
+{{
+    "title": "Short title (e.g. 'Input Handling', 'Token Storage', 'Query Construction')",
+    "vulnerable_label": "What the bad approach is (e.g. 'String Concatenation')",
+    "vulnerable_code": "3-8 lines of vulnerable code",
+    "secure_label": "What the good approach is (e.g. 'Parameterized Query')",
+    "secure_code": "3-8 lines of secure code",
+    "language": "python",
+    "explanation": "One sentence explaining why the secure version is better"
+}}
+
+Guidelines:
+- Both code snippets must be short (3-8 lines each) — they'll be displayed side by side
+- Use realistic variable names and patterns
+- The difference should be immediately visible when placed side by side
+- The explanation should be understandable by a beginner"""
+
+KEY_FACT_PROMPT = """You are a security educator creating a shareable key fact card.
+
+Study material:
+{notes_summary}
+
+Your task: Extract the single most important, memorable, shareable fact from today's topic.
+
+Respond with ONLY valid JSON (no markdown fencing, no extra text):
+{{
+    "headline": "A bold, attention-grabbing statement (8-15 words max)",
+    "explanation": "2-3 sentences explaining why this matters. Use simple language. Be specific — numbers, names, real examples.",
+    "source": "Where this fact comes from (e.g. 'OWASP Top 10', 'Capital One Breach 2019', research paper name)"
+}}
+
+Guidelines:
+- The headline should work as a standalone statement someone would screenshot and share
+- The explanation adds context without being a full article
+- Be factually accurate — base this on the study material
+- A 16-year-old should understand both the headline and explanation"""
+
+CAROUSEL_PROMPT = """You are a security educator creating a multi-slide educational carousel for Instagram/LinkedIn.
+
+Study material:
+{notes_summary}
+
+Create a 5-6 slide educational breakdown that teaches the concept progressively.
+
+Respond with ONLY valid JSON (no markdown fencing, no extra text):
+{{
+    "title": "Carousel title (shown on cover slide)",
+    "subtitle": "One-line hook or question",
+    "slides": [
+        {{
+            "heading": "Slide heading (3-6 words)",
+            "body": "2-4 sentences teaching one specific point. Simple language, concrete examples.",
+            "footer": "Optional one-line tip or note"
+        }}
+    ]
+}}
+
+Rules for each slide:
+- Each slide teaches exactly ONE idea
+- Progressive: slide 2 builds on slide 1, etc.
+- Use analogies and examples, not abstract definitions
+- A 16-year-old should understand every slide
+- Heading should be engaging, not academic (not "Introduction" or "Background")
+- 5-6 slides total (not counting cover slide)
+- Last slide should be an actionable takeaway or call to action"""
 
 
 class ContentWriter:
@@ -181,12 +291,12 @@ class ContentWriter:
         pieces: list[ContentPiece] = []
 
         generators = [
-            (self._generate_daily_update, ContentType.DAILY_UPDATE, Platform.TWITTER),
-            (self._generate_linkedin_post, ContentType.THREAD, Platform.LINKEDIN),
-            (self._generate_twitter_thread, ContentType.THREAD, Platform.TWITTER),
-            (self._generate_hot_take, ContentType.HOT_TAKE, Platform.TWITTER),
-            (self._generate_instagram_caption, ContentType.CAPTION, Platform.INSTAGRAM),
-            (self._generate_video_script, ContentType.VIDEO_SCRIPT, Platform.YOUTUBE),
+            (self._generate_daily_lesson, ContentType.DAILY_LESSON, Platform.TWITTER),
+            (self._generate_deep_dive, ContentType.DEEP_DIVE, Platform.LINKEDIN),
+            (self._generate_concept_breakdown, ContentType.CONCEPT_BREAKDOWN, Platform.TWITTER),
+            (self._generate_surprising_fact, ContentType.SURPRISING_FACT, Platform.TWITTER),
+            (self._generate_micro_lesson, ContentType.MICRO_LESSON, Platform.INSTAGRAM),
+            (self._generate_visual_lesson, ContentType.VISUAL_LESSON, Platform.YOUTUBE),
         ]
 
         for gen_func, content_type, platform in generators:
@@ -212,55 +322,55 @@ class ContentWriter:
         return pieces
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_linkedin_post(
+    def _generate_daily_lesson(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
-        prompt = LINKEDIN_PROMPT.format(
+        prompt = DAILY_LESSON_PROMPT.format(
+            day_number=day_number, notes_summary=notes_summary,
+        )
+        return self._call_claude(prompt)
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    def _generate_deep_dive(
+        self, notes_summary: str, trends_summary: str, day_number: int,
+    ) -> str:
+        prompt = DEEP_DIVE_PROMPT.format(
             day_number=day_number, notes_summary=notes_summary, trends_summary=trends_summary,
         )
         return self._call_claude(prompt)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_twitter_thread(
+    def _generate_concept_breakdown(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
-        prompt = TWITTER_THREAD_PROMPT.format(
+        prompt = CONCEPT_BREAKDOWN_PROMPT.format(
             day_number=day_number, notes_summary=notes_summary,
         )
         return self._call_claude(prompt)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_hot_take(
+    def _generate_surprising_fact(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
-        prompt = HOT_TAKE_PROMPT.format(
+        prompt = SURPRISING_FACT_PROMPT.format(
             notes_summary=notes_summary, trends_summary=trends_summary,
         )
         return self._call_grok(prompt)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_instagram_caption(
+    def _generate_micro_lesson(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
-        prompt = INSTAGRAM_CAPTION_PROMPT.format(
+        prompt = MICRO_LESSON_PROMPT.format(
             day_number=day_number, notes_summary=notes_summary,
         )
         return self._call_claude(prompt)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_video_script(
+    def _generate_visual_lesson(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
-        prompt = VIDEO_SCRIPT_PROMPT.format(notes_summary=notes_summary)
-        return self._call_claude(prompt)
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
-    def _generate_daily_update(
-        self, notes_summary: str, trends_summary: str, day_number: int,
-    ) -> str:
-        prompt = DAILY_UPDATE_PROMPT.format(
-            day_number=day_number, notes_summary=notes_summary,
-        )
+        prompt = VISUAL_LESSON_PROMPT.format(notes_summary=notes_summary)
         return self._call_claude(prompt)
 
     def generate_code_challenge(
@@ -270,15 +380,50 @@ class ContentWriter:
             return None
         notes_summary = _build_notes_summary(notes)
         prompt = CODE_CHALLENGE_PROMPT.format(notes_summary=notes_summary)
+        return self._parse_json_response(prompt, ("code", "language", "vulnerability", "hint"))
+
+    def generate_comparison(
+        self, notes: list[ObsidianNote],
+    ) -> dict | None:
+        if not notes:
+            return None
+        notes_summary = _build_notes_summary(notes)
+        prompt = COMPARISON_PROMPT.format(notes_summary=notes_summary)
+        return self._parse_json_response(
+            prompt, ("title", "vulnerable_code", "secure_code", "language"),
+            no_match_token="NO_COMPARISON",
+        )
+
+    def generate_key_fact(
+        self, notes: list[ObsidianNote],
+    ) -> dict | None:
+        if not notes:
+            return None
+        notes_summary = _build_notes_summary(notes)
+        prompt = KEY_FACT_PROMPT.format(notes_summary=notes_summary)
+        return self._parse_json_response(prompt, ("headline", "explanation"))
+
+    def generate_carousel(
+        self, notes: list[ObsidianNote],
+    ) -> dict | None:
+        if not notes:
+            return None
+        notes_summary = _build_notes_summary(notes)
+        prompt = CAROUSEL_PROMPT.format(notes_summary=notes_summary)
+        return self._parse_json_response(prompt, ("title", "slides"))
+
+    def _parse_json_response(
+        self, prompt: str, required_fields: tuple, no_match_token: str = "NO_CHALLENGE",
+    ) -> dict | None:
         try:
             raw = self._call_claude(prompt)
         except Exception as e:
-            log.error("Code challenge generation failed: %s", e)
+            log.error("Generation failed: %s", e)
             return None
 
         text = raw.strip()
-        if text == "NO_CHALLENGE":
-            log.info("Claude decided no code challenge fits today's topic")
+        if text == no_match_token:
+            log.info("Claude decided this content type doesn't fit today's topic")
             return None
 
         for fence in ("```json", "```"):
@@ -291,12 +436,11 @@ class ContentWriter:
         try:
             data = json.loads(text)
         except json.JSONDecodeError:
-            log.warning("Failed to parse code challenge JSON: %s", text[:200])
+            log.warning("Failed to parse JSON response: %s", text[:200])
             return None
 
-        required = ("code", "language", "vulnerability", "hint")
-        if not all(k in data for k in required):
-            log.warning("Code challenge JSON missing required fields")
+        if not all(k in data for k in required_fields):
+            log.warning("JSON response missing required fields: %s", required_fields)
             return None
 
         return data
@@ -314,7 +458,7 @@ class ContentWriter:
 
     def _call_grok(self, prompt: str) -> str:
         if not self._xai_key:
-            log.warning("No xAI key — falling back to Claude for hot take")
+            log.warning("No xAI key — falling back to Claude for surprising fact")
             return self._call_claude(prompt)
         with httpx.Client(timeout=60) as client:
             resp = client.post(
@@ -334,7 +478,7 @@ class ContentWriter:
 def _build_notes_summary(notes: list[ObsidianNote]) -> str:
     parts = []
     for i, note in enumerate(notes, 1):
-        lines = [f"### Task {i}: {note.title}"]
+        lines = [f"### Topic {i}: {note.title}"]
         if note.track:
             lines.append(f"Track: {note.track}")
         if note.task_type:

@@ -90,5 +90,68 @@ def test_build_notes_summary():
     summary = _build_notes_summary(notes)
     assert "SSRF Deep Dive" in summary
     assert "XSS Basics" in summary
-    assert "Task 1" in summary
-    assert "Task 2" in summary
+    assert "Topic 1" in summary
+    assert "Topic 2" in summary
+
+
+def test_generate_comparison_valid_json():
+    writer = ContentWriter(anthropic_api_key="test-key")
+    mock_response = json.dumps({
+        "title": "Query Construction",
+        "vulnerable_label": "String Concatenation",
+        "vulnerable_code": "query = f'SELECT * FROM users WHERE name = {name}'",
+        "secure_label": "Parameterized Query",
+        "secure_code": "cursor.execute('SELECT * FROM users WHERE name = %s', (name,))",
+        "language": "python",
+        "explanation": "Parameterized queries prevent SQL injection by separating code from data.",
+    })
+    with patch.object(writer, "_call_claude", return_value=mock_response):
+        result = writer.generate_comparison([_make_note()])
+    assert result is not None
+    assert result["title"] == "Query Construction"
+    assert "vulnerable_code" in result
+    assert "secure_code" in result
+
+
+def test_generate_comparison_no_match():
+    writer = ContentWriter(anthropic_api_key="test-key")
+    with patch.object(writer, "_call_claude", return_value="NO_COMPARISON"):
+        result = writer.generate_comparison([_make_note(title="History")])
+    assert result is None
+
+
+def test_generate_key_fact_valid_json():
+    writer = ContentWriter(anthropic_api_key="test-key")
+    mock_response = json.dumps({
+        "headline": "90% of cloud breaches start with SSRF",
+        "explanation": "SSRF allows attackers to access internal cloud metadata endpoints.",
+        "source": "OWASP Top 10",
+    })
+    with patch.object(writer, "_call_claude", return_value=mock_response):
+        result = writer.generate_key_fact([_make_note()])
+    assert result is not None
+    assert "90%" in result["headline"]
+    assert result["source"] == "OWASP Top 10"
+
+
+def test_generate_carousel_valid_json():
+    writer = ContentWriter(anthropic_api_key="test-key")
+    mock_response = json.dumps({
+        "title": "Understanding SSRF",
+        "subtitle": "How attackers talk to your internal services",
+        "slides": [
+            {"heading": "What is SSRF?", "body": "Server-Side Request Forgery...", "footer": ""},
+            {"heading": "How it works", "body": "The attacker tricks...", "footer": "Think: mail forwarding"},
+        ],
+    })
+    with patch.object(writer, "_call_claude", return_value=mock_response):
+        result = writer.generate_carousel([_make_note()])
+    assert result is not None
+    assert result["title"] == "Understanding SSRF"
+    assert len(result["slides"]) == 2
+
+
+def test_generate_carousel_empty_notes():
+    writer = ContentWriter(anthropic_api_key="test-key")
+    result = writer.generate_carousel([])
+    assert result is None

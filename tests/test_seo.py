@@ -59,7 +59,7 @@ def test_optimize_hashtags_no_api_key():
     )
     from content_agent.models import ContentPiece, ContentType, Platform
     piece = ContentPiece(
-        content_type=ContentType.DAILY_UPDATE,
+        content_type=ContentType.DAILY_LESSON,
         platform=Platform.TWITTER,
         body="Day 1: SSRF",
         day_number=1,
@@ -78,12 +78,12 @@ def test_optimize_content_assigns_hashtags():
     from content_agent.models import ContentPiece, ContentType, Platform
     pieces = [
         ContentPiece(
-            content_type=ContentType.DAILY_UPDATE,
+            content_type=ContentType.DAILY_LESSON,
             platform=Platform.TWITTER,
             body="test", day_number=1,
         ),
         ContentPiece(
-            content_type=ContentType.THREAD,
+            content_type=ContentType.DEEP_DIVE,
             platform=Platform.LINKEDIN,
             body="test", day_number=1,
         ),

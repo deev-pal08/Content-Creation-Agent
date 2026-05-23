@@ -103,13 +103,31 @@ def daily(no_publish: bool, force: bool, date: str | None):
     for p in pieces:
         click.echo(f"   - {p.content_type.value} for {p.platform.value}")
 
-    # Step 3b: Generate code challenge (Claude decides if today's topic fits)
-    click.echo("\n   Evaluating code challenge from today's learnings...")
+    # Step 3b: Generate educational image content (Claude decides what fits)
+    click.echo("\n   Generating educational image content...")
     code_challenge = writer.generate_code_challenge(notes)
     if code_challenge:
         click.echo(f"   Code challenge: {code_challenge['vulnerability']} ({code_challenge['language']})")
     else:
         click.echo("   No code challenge for today's topic")
+
+    comparison = writer.generate_comparison(notes)
+    if comparison:
+        click.echo(f"   Comparison card: {comparison.get('title', 'untitled')}")
+    else:
+        click.echo("   No comparison card for today's topic")
+
+    key_fact = writer.generate_key_fact(notes)
+    if key_fact:
+        click.echo(f"   Key fact: {key_fact.get('headline', '')[:60]}...")
+    else:
+        click.echo("   No key fact generated")
+
+    carousel = writer.generate_carousel(notes)
+    if carousel:
+        click.echo(f"   Carousel: {carousel.get('title', '')} ({len(carousel.get('slides', []))} slides)")
+    else:
+        click.echo("   No carousel generated")
 
     # Step 4: Generate images
     click.echo("\n4. Generating images...")
@@ -119,7 +137,13 @@ def daily(no_publish: bool, force: bool, date: str | None):
         brand_colors=cfg.images.brand_colors,
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
     )
-    images = img_producer.generate_all_for_day(notes, day_number, target_date, code_challenge)
+    images = img_producer.generate_all_for_day(
+        notes, day_number, target_date,
+        code_challenge=code_challenge,
+        comparison=comparison,
+        key_fact=key_fact,
+        carousel=carousel,
+    )
     click.echo(f"   Generated {len(images)} image(s)")
     for img in images:
         click.echo(f"   - {img.image_type.value} via {img.generator.value}")
@@ -127,7 +151,7 @@ def daily(no_publish: bool, force: bool, date: str | None):
     # Step 5: Generate video
     click.echo("\n5. Generating video...")
     video_asset = None
-    video_scripts = [p for p in pieces if p.content_type == "video_script"]
+    video_scripts = [p for p in pieces if p.content_type == "visual_lesson"]
     if video_scripts:
         from content_agent.video import VideoProducer
         vid_producer = VideoProducer(

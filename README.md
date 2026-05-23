@@ -1,16 +1,19 @@
 # Content Creation Agent
 
-An AI-powered content pipeline that transforms daily Obsidian learning notes into multi-platform social media content. Built for a 6-month security + AI learning journey — one note in, six content pieces out.
+An AI-powered educational content platform that transforms daily Obsidian learning notes into multi-platform social media content. Security + AI topics explained so clearly a 16-year-old can follow — one note in, six content pieces + five image types out.
 
 ## What It Does
 
-Write an Obsidian note about what you learned today. The agent reads it (including linked notes), researches current trends, generates platform-specific content, creates visual assets, optimizes for SEO, and saves everything to a database ready for scheduling.
+Write an Obsidian note about what you studied today. The agent reads it (including linked notes), researches current trends, generates educational content for every major platform, creates visual assets, optimizes for SEO, and saves everything to a database ready for scheduling.
 
 **Per day, the agent produces:**
-- 6 text content pieces (daily update, LinkedIn post, Twitter thread, hot take, Instagram caption, video script)
+- 6 educational text pieces (daily lesson, deep dive, concept breakdown, surprising fact, micro lesson, video script)
 - 1 AI-generated concept art image (GPT-4o)
-- 1 day card image (concept art + text overlay)
+- 1 day card (concept art + text overlay)
 - 1 "Spot the Bug" code challenge image (when the topic fits)
+- 1 comparison card — vulnerable vs secure code side-by-side
+- 1 key fact card — shareable statistic/fact
+- 1 carousel — multi-slide educational breakdown (cover + slides)
 - 1 TTS narration audio file
 - Platform-optimized hashtags and posting times
 
@@ -26,11 +29,11 @@ Obsidian Note (markdown + YAML frontmatter)
 [2. Research] ── Grok (X trends) + Perplexity (web) + Gemini (YouTube)
     |
     v
-[3. Write] ── Claude Sonnet 4 (5 pieces) + Grok 3 Mini (hot take)
-    |         + Claude generates "Spot the Bug" code challenge
+[3. Write] ── Claude Sonnet 4 (educational content) + Grok 3 Mini (surprising facts)
+    |           + Claude generates code challenge, comparison, key fact, carousel data
     v
 [4. Images] ── GPT-4o concept art → HTML/CSS overlay → Playwright screenshot
-    |           + code challenge HTML → Playwright screenshot
+    |           + comparison card, key fact card, carousel slides (all HTML→PNG)
     v
 [5. Video] ── OpenAI TTS narration → Remotion assembly (WIP)
     |
@@ -44,12 +47,22 @@ Obsidian Note (markdown + YAML frontmatter)
 [8. Publish] ── Buffer API scheduling (not yet connected)
 ```
 
+## Educational Content Philosophy
+
+This agent doesn't journal — it teaches. Every piece of content follows these principles:
+
+- **Feynman Technique** — if you can't explain it simply, you don't understand it well enough
+- **Analogies are mandatory** — every concept gets a real-world comparison
+- **No "I learned" language** — always address the audience directly ("Here's how SSRF works")
+- **Accessible to all levels** — a 16-year-old should understand every post
+- **Real examples** — concrete code, real attack scenarios, actual defense patterns
+
 ## AI Models
 
 | Model | Provider | Role | Cost/day |
 |-------|----------|------|----------|
-| Claude Sonnet 4 | Anthropic | Content writing (5 pieces + code challenge) | ~$0.10 |
-| Grok 3 Mini | xAI | X/Twitter trends + hot takes | ~$0.02 |
+| Claude Sonnet 4 | Anthropic | Educational writing (5 pieces + image content) | ~$0.10 |
+| Grok 3 Mini | xAI | X/Twitter trends + surprising facts | ~$0.02 |
 | Gemini 2.5 Flash | Google | YouTube trends + SEO/hashtags | ~$0.01 |
 | gpt-image-1 | OpenAI | Concept art for day cards | ~$0.07 |
 | gpt-4o-mini-tts | OpenAI | Video narration | ~$0.02 |
@@ -61,22 +74,25 @@ Obsidian Note (markdown + YAML frontmatter)
 
 | Type | Platform | Generator | Description |
 |------|----------|-----------|-------------|
-| Daily Update | Twitter | Claude | Day N progress post, personal learning narrative |
-| LinkedIn Post | LinkedIn | Claude | Thought leadership, professional tone, 150-300 words |
-| Twitter Thread | Twitter | Claude | 4-6 tweet educational breakdown of a concept |
-| Hot Take | Twitter | Grok | One spicy, scroll-stopping tweet tied to trends |
-| Instagram Caption | Instagram | Claude | 50-100 words, accessible to non-experts |
-| Video Script | YouTube | Claude | 30-60s narration with scene descriptions |
+| Daily Lesson | Twitter + LinkedIn | Claude | Day N educational card explaining the topic studied |
+| Deep Dive | Twitter (thread) | Claude | 4-6 tweet educational breakdown of a concept |
+| Concept Breakdown | LinkedIn | Claude | "Here's how X works" with analogies, 150-300 words |
+| Surprising Fact | Twitter | Grok | Attention-grabbing fact/stat tied to trends |
+| Micro Lesson | Instagram | Claude | 50-100 word accessible educational snippet |
+| Visual Lesson | YouTube/Reels | Claude | 30-60s narrated explainer script |
 | Code Challenge | Twitter/LinkedIn | Claude + HTML | "Spot the Bug" — realistic vulnerable code image |
 
-## Image Generation
+## Image Types
 
-AI models cannot reliably render text. The agent uses a hybrid approach:
+| Type | Method | Description |
+|------|--------|-------------|
+| Day Card | GPT-4o art + HTML overlay | Concept art background with day number + topic text |
+| Code Challenge | HTML/CSS → Playwright | Monospace vulnerable code with "Find the vulnerability" |
+| Comparison Card | HTML/CSS → Playwright | Red "Vulnerable" vs Green "Secure" side-by-side |
+| Key Fact Card | HTML/CSS → Playwright | Bold headline stat with source attribution |
+| Carousel | HTML/CSS → Playwright | Multi-slide series: cover + numbered educational slides |
 
-- **GPT-4o** generates artistic concept art (cyberpunk-style, no text) as the day card background
-- **HTML/CSS templates** render all text (day number, topic, takeaway, code) with pixel-perfect control
-- **Playwright** screenshots the HTML at 1080x1080 to produce the final PNG
-- Code challenges use monospace fonts and syntax-aware styling via HTML templates
+AI models cannot reliably render text. The agent uses HTML/CSS templates for all text-heavy images, screenshotted via Playwright at 1080x1080 for pixel-perfect results.
 
 ## Note Intelligence
 
@@ -197,16 +213,19 @@ src/content_agent/
     models.py         # Data models (ObsidianNote, ContentPiece, ImageAsset, etc.)
     ingest.py         # Obsidian vault parser + linked note resolution
     research.py       # Trend research (Grok, Perplexity, Gemini)
-    writer.py         # Content writing (Claude, Grok) + code challenge generation
+    writer.py         # Educational content writing (Claude, Grok) + image content generation
     images.py         # Image generation (GPT-4o + HTML templates + Playwright)
     video.py          # Video generation (TTS + Remotion)
     seo.py            # SEO optimization (Gemini Flash)
     publisher.py      # Buffer API scheduling
     state/store.py    # SQLite state manager
-    templates/        # Jinja2 HTML templates
-        day_card.html
-        code_challenge.html
-tests/                # 90 tests
+    templates/
+        day_card.html         # Day card with concept art background
+        code_challenge.html   # "Spot the Bug" vulnerable code
+        comparison_card.html  # Vulnerable vs Secure side-by-side
+        key_fact.html         # Bold shareable fact/stat
+        carousel_slide.html   # Multi-slide educational series
+tests/                # 99 tests
 config.yaml           # Pipeline configuration
 ```
 
@@ -220,16 +239,19 @@ uv run pytest tests/ -v
 uv run pytest tests/test_writer.py -v
 ```
 
-90 tests across 8 files covering config validation, data models, SQLite operations, Obsidian parsing, trend research parsing, code challenge generation, SEO optimization, image template rendering, and video script parsing.
+99 tests across 9 files covering config validation, data models, SQLite operations, Obsidian parsing, trend research parsing, educational content generation, SEO optimization, all 5 image template types, and video script parsing.
 
 ## Roadmap
 
 - [x] Notes ingestion with linked note resolution
 - [x] Multi-source trend research (Grok + Perplexity + Gemini)
-- [x] 6-piece content generation (Claude + Grok)
+- [x] 6-piece educational content generation (Claude + Grok)
 - [x] AI code challenge generation (Claude decides topic fit)
+- [x] Comparison card generation (vulnerable vs secure code)
+- [x] Key fact card generation (shareable statistics)
+- [x] Carousel generation (multi-slide educational series)
 - [x] GPT-4o concept art + HTML/CSS day cards
-- [x] Code challenge image rendering (Playwright)
+- [x] 5 HTML/CSS image templates (Playwright rendering)
 - [x] TTS narration generation (OpenAI)
 - [x] SEO/hashtag optimization (Gemini Flash)
 - [x] SQLite persistence with day tracking

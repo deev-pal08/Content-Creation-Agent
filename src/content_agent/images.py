@@ -1,4 +1,4 @@
-"""Image generation — HTML templates (day cards, code challenges) + GPT-4o concept art."""
+"""Image generation — HTML templates (day cards, code challenges, comparisons, facts, carousels) + GPT-4o concept art."""
 
 from __future__ import annotations
 
@@ -152,9 +152,135 @@ class ImageProducer:
             metadata={"language": language, "vulnerability": vulnerability},
         )
 
+    def generate_comparison_card(
+        self, title: str, vulnerable_label: str, vulnerable_code: str,
+        secure_label: str, secure_code: str, language: str = "python",
+        explanation: str = "", day_number: int = 0,
+    ) -> ImageAsset:
+        template = self._jinja_env.get_template("comparison_card.html")
+        html = template.render(
+            title=title,
+            vulnerable_label=vulnerable_label,
+            vulnerable_code=vulnerable_code,
+            secure_label=secure_label,
+            secure_code=secure_code,
+            language=language,
+            explanation=explanation,
+            day_number=day_number,
+            colors=self._colors.model_dump(),
+        )
+
+        html_path = self._output_dir / f"day_{day_number}_comparison.html"
+        png_path = self._output_dir / f"day_{day_number}_comparison.png"
+        html_path.write_text(html)
+        _html_to_png(html_path, png_path)
+
+        backend = _detect_screenshot_backend()
+        gen = ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+        return ImageAsset(
+            image_type=ImageType.COMPARISON_CARD,
+            file_path=str(png_path),
+            generator=gen,
+            prompt=f"Comparison: {title}",
+            metadata={"title": title, "language": language},
+        )
+
+    def generate_key_fact_card(
+        self, headline: str, explanation: str, source: str = "",
+        day_number: int = 0,
+    ) -> ImageAsset:
+        template = self._jinja_env.get_template("key_fact.html")
+        html = template.render(
+            headline=headline,
+            explanation=explanation,
+            source=source,
+            day_number=day_number,
+            colors=self._colors.model_dump(),
+        )
+
+        html_path = self._output_dir / f"day_{day_number}_keyfact.html"
+        png_path = self._output_dir / f"day_{day_number}_keyfact.png"
+        html_path.write_text(html)
+        _html_to_png(html_path, png_path)
+
+        backend = _detect_screenshot_backend()
+        gen = ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+        return ImageAsset(
+            image_type=ImageType.KEY_FACT_CARD,
+            file_path=str(png_path),
+            generator=gen,
+            prompt=f"Key fact: {headline}",
+            metadata={"headline": headline},
+        )
+
+    def generate_carousel(
+        self, carousel_data: dict, day_number: int = 0,
+    ) -> list[ImageAsset]:
+        template = self._jinja_env.get_template("carousel_slide.html")
+        slides = carousel_data.get("slides", [])
+        total = len(slides)
+        assets: list[ImageAsset] = []
+
+        cover_html = template.render(
+            is_cover=True,
+            heading=carousel_data.get("title", ""),
+            subtitle=carousel_data.get("subtitle", ""),
+            slide_number=0,
+            total_slides=total,
+            progress_pct=0,
+            day_number=day_number,
+            footer="",
+            colors=self._colors.model_dump(),
+        )
+        cover_html_path = self._output_dir / f"day_{day_number}_carousel_0.html"
+        cover_png_path = self._output_dir / f"day_{day_number}_carousel_0.png"
+        cover_html_path.write_text(cover_html)
+        _html_to_png(cover_html_path, cover_png_path)
+
+        backend = _detect_screenshot_backend()
+        gen = ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+        assets.append(ImageAsset(
+            image_type=ImageType.CAROUSEL_SLIDE,
+            file_path=str(cover_png_path),
+            generator=gen,
+            prompt=f"Carousel cover: {carousel_data.get('title', '')}",
+            metadata={"slide": 0, "total": total + 1},
+        ))
+
+        for i, slide in enumerate(slides, 1):
+            pct = int((i / total) * 100)
+            slide_html = template.render(
+                is_cover=False,
+                heading=slide.get("heading", ""),
+                body=slide.get("body", ""),
+                footer=slide.get("footer", ""),
+                slide_number=i,
+                total_slides=total,
+                progress_pct=pct,
+                day_number=day_number,
+                colors=self._colors.model_dump(),
+            )
+            html_path = self._output_dir / f"day_{day_number}_carousel_{i}.html"
+            png_path = self._output_dir / f"day_{day_number}_carousel_{i}.png"
+            html_path.write_text(slide_html)
+            _html_to_png(html_path, png_path)
+
+            assets.append(ImageAsset(
+                image_type=ImageType.CAROUSEL_SLIDE,
+                file_path=str(png_path),
+                generator=gen,
+                prompt=f"Carousel slide {i}: {slide.get('heading', '')}",
+                metadata={"slide": i, "total": total + 1},
+            ))
+
+        return assets
+
     def generate_all_for_day(
         self, notes: list[ObsidianNote], day_number: int, date: str = "",
         code_challenge: dict | None = None,
+        comparison: dict | None = None,
+        key_fact: dict | None = None,
+        carousel: dict | None = None,
     ) -> list[ImageAsset]:
         if not notes:
             return []
@@ -194,6 +320,41 @@ class ImageProducer:
                 assets.append(challenge)
             except Exception as e:
                 log.error("Code challenge generation failed: %s", e)
+
+        if comparison:
+            try:
+                comp = self.generate_comparison_card(
+                    title=comparison.get("title", ""),
+                    vulnerable_label=comparison.get("vulnerable_label", "Vulnerable"),
+                    vulnerable_code=comparison.get("vulnerable_code", ""),
+                    secure_label=comparison.get("secure_label", "Secure"),
+                    secure_code=comparison.get("secure_code", ""),
+                    language=comparison.get("language", "python"),
+                    explanation=comparison.get("explanation", ""),
+                    day_number=day_number,
+                )
+                assets.append(comp)
+            except Exception as e:
+                log.error("Comparison card generation failed: %s", e)
+
+        if key_fact:
+            try:
+                fact = self.generate_key_fact_card(
+                    headline=key_fact.get("headline", ""),
+                    explanation=key_fact.get("explanation", ""),
+                    source=key_fact.get("source", ""),
+                    day_number=day_number,
+                )
+                assets.append(fact)
+            except Exception as e:
+                log.error("Key fact card generation failed: %s", e)
+
+        if carousel:
+            try:
+                slides = self.generate_carousel(carousel, day_number=day_number)
+                assets.extend(slides)
+            except Exception as e:
+                log.error("Carousel generation failed: %s", e)
 
         return assets
 
