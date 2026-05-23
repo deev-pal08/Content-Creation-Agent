@@ -1,0 +1,73 @@
+obsidian:
+  vault_path: "~/obsidian/security-kb"
+  notes_glob: "**/*.md"
+
+llm:
+  writer_model: "claude-sonnet-4-6"
+  strategy_model: "claude-sonnet-4-6"
+  trend_model_x: "grok-3-mini"
+  trend_model_web: "sonar"
+  trend_model_youtube: "gemini-2.5-flash"
+  seo_model: "gemini-2.5-flash"
+  hot_take_model: "grok-3-mini"
+  tts_model: "gpt-4o-mini-tts"
+  tts_voice: "nova"
+  max_tokens: 4096
+
+images:
+  infographic_provider: "recraft"
+  explainer_provider: "ideogram"
+  output_dir: "output/images"
+  brand_colors:
+    primary: "#1a1a2e"
+    secondary: "#16213e"
+    accent: "#0f3460"
+    highlight: "#e94560"
+    text_light: "#ffffff"
+    text_dark: "#1a1a2e"
+
+video:
+  output_dir: "output/videos"
+  duration_target: 45
+  width: 1080
+  height: 1920
+
+seo:
+  default_hashtags:
+    twitter:
+      - "cybersecurity"
+      - "infosec"
+      - "AI"
+      - "security"
+    linkedin:
+      - "cybersecurity"
+      - "artificialintelligence"
+      - "security"
+      - "techcareers"
+    instagram:
+      - "cybersecurity"
+      - "infosec"
+      - "hacking"
+      - "ai"
+      - "securityengineer"
+  posting_times:
+    twitter: "09:00"
+    linkedin: "08:30"
+    instagram: "12:00"
+    youtube: "14:00"
+
+publisher:
+  buffer_profile_ids:
+    twitter: ""
+    linkedin: ""
+    instagram: ""
+    youtube: ""
+
+schedule:
+  daily_time: "06:30"
+  timezone: "Europe/London"
+
+state_dir: "data"
+day_counter_start: 1
+
+about_me: "AboutMe.md"

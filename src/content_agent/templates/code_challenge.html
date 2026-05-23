@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1080px;
+    background: {{ colors.primary }};
+    font-family: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+    color: {{ colors.text_light }};
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid {{ colors.accent }};
+  }
+  .badge {
+    background: {{ colors.highlight }};
+    color: {{ colors.text_light }};
+    font-size: 22px;
+    font-weight: 700;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: -apple-system, sans-serif;
+  }
+  .label {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: -apple-system, sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: {{ colors.highlight }};
+  }
+  .code-container {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 30px;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+  .lang-tag {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .code {
+    font-size: 20px;
+    line-height: 1.6;
+    white-space: pre;
+    color: #e6edf3;
+  }
+  .keyword { color: #ff7b72; }
+  .string { color: #a5d6ff; }
+  .comment { color: #8b949e; font-style: italic; }
+  .function { color: #d2a8ff; }
+  .number { color: #79c0ff; }
+  .footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid {{ colors.accent }};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: -apple-system, sans-serif;
+  }
+  .hint {
+    font-size: 22px;
+    color: #b0b0b0;
+    max-width: 700px;
+  }
+  .challenge-tag {
+    font-size: 18px;
+    color: {{ colors.highlight }};
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="label">Spot the Bug</div>
+    {% if day_number %}<div class="badge">DAY {{ day_number }}</div>{% endif %}
+  </div>
+  <div class="code-container">
+    <div class="lang-tag">{{ language }}</div>
+    <div class="code">{{ code }}</div>
+  </div>
+  <div class="footer">
+    {% if hint %}<div class="hint">{{ hint }}</div>{% endif %}
+    <div class="challenge-tag">Can you find the vulnerability?</div>
+  </div>
+</body>
+</html>
