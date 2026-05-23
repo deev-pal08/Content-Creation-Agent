@@ -88,7 +88,7 @@ def test_code_challenge_html_generation(tmp_path):
     html_content = html_path.read_text()
     assert "Spot the Bug" in html_content
     assert "python" in html_content
-    assert "DAY 5" in html_content
+    assert "Day 5" in html_content
 
 
 def test_generate_all_for_day_empty_notes(tmp_path):
@@ -168,7 +168,7 @@ def test_comparison_card_html_generation(tmp_path):
     html_content = html_path.read_text()
     assert "Vulnerable" in html_content
     assert "Secure" in html_content
-    assert "DAY 7" in html_content
+    assert "Day 7" in html_content
 
 
 def test_key_fact_card_html_generation(tmp_path):
@@ -194,9 +194,11 @@ def test_carousel_html_generation(tmp_path):
     carousel_data = {
         "title": "Understanding SSRF",
         "subtitle": "How attackers talk to your internal services",
+        "file_name": "ssrf-guide.sh",
+        "toc_items": ["What is SSRF?", "How it works"],
         "slides": [
-            {"heading": "What is SSRF?", "body": "Server-Side Request Forgery explained.", "footer": ""},
-            {"heading": "How it works", "body": "The attacker tricks the server.", "footer": "Like mail forwarding"},
+            {"heading": "What is SSRF?", "body": "Server-Side Request Forgery explained.", "tag": "BASICS", "terminal_lines": ["> # example"], "lesson": "SSRF is dangerous", "tags": ["ssrf"]},
+            {"heading": "How it works", "body": "The attacker tricks the server.", "tag": "ATTACK", "terminal_lines": ["> # curl internal"], "lesson": "Always validate URLs", "tags": ["defense"]},
         ],
     }
     assets = producer.generate_carousel(carousel_data, day_number=4)
@@ -206,9 +208,11 @@ def test_carousel_html_generation(tmp_path):
     cover_html = (tmp_path / "images" / "day_4_carousel_0.html").read_text()
     assert "Understanding SSRF" in cover_html
     assert "SWIPE TO LEARN" in cover_html
+    assert "ssrf-guide.sh" in cover_html
 
     slide_html = (tmp_path / "images" / "day_4_carousel_1.html").read_text()
-    assert "1/2" in slide_html
+    assert "What is SSRF?" in slide_html
+    assert "BASICS" in slide_html
 
 
 def test_generate_all_with_all_image_types(tmp_path):
@@ -224,7 +228,7 @@ def test_generate_all_with_all_image_types(tmp_path):
         code_challenge={"code": "requests.get(url)", "language": "python", "vulnerability": "SSRF", "hint": "Check URL"},
         comparison={"title": "URL Validation", "vulnerable_label": "None", "vulnerable_code": "get(url)", "secure_label": "Allowlist", "secure_code": "if url in ALLOWED: get(url)", "language": "python", "explanation": "Validate URLs"},
         key_fact={"headline": "SSRF is #1", "explanation": "Most common cloud attack", "source": "OWASP"},
-        carousel={"title": "SSRF Guide", "subtitle": "Learn SSRF", "slides": [{"heading": "Slide 1", "body": "Content", "footer": ""}]},
+        carousel={"title": "SSRF Guide", "subtitle": "Learn SSRF", "file_name": "ssrf.sh", "toc_items": ["Slide 1"], "slides": [{"heading": "Slide 1", "body": "Content", "tag": "BASICS", "terminal_lines": ["> # test"], "lesson": "Learn it", "tags": ["ssrf"]}]},
     )
     types = [a.image_type for a in assets]
     assert "day_card" in types

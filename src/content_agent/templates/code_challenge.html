@@ -2,59 +2,134 @@
 <html>
 <head>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     width: 1080px;
-    height: 1080px;
-    background: {{ colors.primary }};
-    font-family: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
-    color: {{ colors.text_light }};
+    min-height: 1080px;
+    background: #0d1117;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #e6edf3;
     display: flex;
     flex-direction: column;
-    padding: 40px;
   }
-  .header {
+
+  /* ── Terminal title bar ── */
+  .title-bar {
+    display: flex;
+    align-items: center;
+    padding: 18px 40px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+  }
+  .dots {
+    display: flex;
+    gap: 8px;
+    margin-right: 20px;
+  }
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+  .file-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #8b949e;
+    flex-grow: 1;
+  }
+  .day-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #8b949e;
+  }
+
+  /* ── Content ── */
+  .content {
+    flex-grow: 1;
+    padding: 44px 50px 30px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #4ade80;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .heading {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    color: #ffffff;
+  }
+
+  .tag-pill {
+    display: inline-block;
+    border: 1px solid #ff7b72;
+    color: #ff7b72;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .hint-text {
+    font-size: 21px;
+    line-height: 1.6;
+    color: #c9d1d9;
+    max-width: 900px;
+    margin-bottom: 28px;
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .code-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid {{ colors.accent }};
+    padding: 14px 24px;
+    border-bottom: 1px solid #30363d;
   }
-  .badge {
-    background: {{ colors.highlight }};
-    color: {{ colors.text_light }};
-    font-size: 22px;
-    font-weight: 700;
-    padding: 8px 20px;
-    border-radius: 8px;
-    font-family: -apple-system, sans-serif;
-  }
-  .label {
-    font-size: 28px;
-    font-weight: 700;
-    font-family: -apple-system, sans-serif;
-    letter-spacing: 2px;
+  .lang-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #8b949e;
     text-transform: uppercase;
-    color: {{ colors.highlight }};
+    letter-spacing: 1px;
   }
-  .code-container {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 30px;
-    flex-grow: 1;
-    overflow: hidden;
+  .vuln-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #ff7b72;
+    letter-spacing: 1px;
   }
-  .lang-tag {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 20px;
-    text-transform: uppercase;
+  .code-body {
+    padding: 24px 28px;
   }
   .code {
+    font-family: 'JetBrains Mono', monospace;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-all;
     color: #e6edf3;
@@ -64,39 +139,92 @@
   .comment { color: #8b949e; font-style: italic; }
   .function { color: #d2a8ff; }
   .number { color: #79c0ff; }
+
+  /* ── Challenge prompt ── */
+  .challenge-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #30363d;
+  }
+  .challenge-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ff7b72;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .challenge-text {
+    font-size: 20px;
+    line-height: 1.5;
+    color: #8b949e;
+    max-width: 880px;
+  }
+
+  /* ── Footer ── */
   .footer {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 2px solid {{ colors.accent }};
+    padding: 16px 50px;
+    border-top: 1px solid #30363d;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-family: -apple-system, sans-serif;
   }
-  .hint {
-    font-size: 22px;
-    color: #b0b0b0;
-    max-width: 700px;
+  .handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #8b949e;
   }
-  .challenge-tag {
-    font-size: 18px;
-    color: {{ colors.highlight }};
-    font-weight: 600;
+  .handle .prompt {
+    color: #4ade80;
+  }
+  .find-it {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #ff7b72;
+    letter-spacing: 1px;
   }
 </style>
 </head>
 <body>
-  <div class="header">
-    <div class="label">Spot the Bug</div>
-    {% if day_number %}<div class="badge">DAY {{ day_number }}</div>{% endif %}
+  <div class="title-bar">
+    <div class="dots">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+    </div>
+    <div class="file-name">spot-the-bug.sh</div>
+    {% if day_number %}<div class="day-tag">Day {{ day_number }}</div>{% endif %}
   </div>
-  <div class="code-container">
-    <div class="lang-tag">{{ language }}</div>
-    <div class="code">{{ code }}</div>
+
+  <div class="content">
+    <div class="breadcrumb">// CHALLENGE //</div>
+    <div class="heading">Spot the Bug</div>
+    <div class="tag-pill">{{ vulnerability | upper | default('FIND THE VULNERABILITY', true) }}</div>
+
+    {% if hint %}
+    <div class="hint-text">{{ hint }}</div>
+    {% endif %}
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang-label">{{ language }}</div>
+        <div class="vuln-label">Can you find it?</div>
+      </div>
+      <div class="code-body">
+        <div class="code">{{ code }}</div>
+      </div>
+    </div>
+
+    <div class="challenge-section">
+      <div class="challenge-label">YOUR CHALLENGE</div>
+      <div class="challenge-text">Find the security vulnerability in this code. What's wrong and how would you fix it?</div>
+    </div>
   </div>
+
   <div class="footer">
-    {% if hint %}<div class="hint">{{ hint }}</div>{% endif %}
-    <div class="challenge-tag">Can you find the vulnerability?</div>
+    <div class="handle"><span class="prompt">$</span> @techycodec08</div>
+    <div class="find-it">Can you find the vulnerability?</div>
   </div>
 </body>
 </html>

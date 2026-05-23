@@ -91,8 +91,12 @@ uv run pytest tests/ -v             # run tests (89 tests)
 ## Image Generation Strategy
 - Concept art: GPT-4o (gpt-image-1) — artistic cyberpunk visuals, no text
 - Day cards: GPT-4o concept art as background + HTML/CSS text overlay → Playwright screenshot (wait_until=networkidle for image loading)
-- All text-heavy images: HTML/CSS templates → Playwright screenshot (free, pixel-perfect), Puppeteer fallback
-- AI models cannot reliably render text — always use HTML templates for text-heavy content
+- Terminal/hacker style: Carousel, Code Challenge, Comparison Card — dark terminal aesthetic with macOS title bar, JetBrains Mono, green accents, terminal code blocks
+- Twitter screenshot style: Key Fact Card — pure black bg, profile pic, verified badge, large white text
+- All text-heavy images: HTML/CSS templates → Playwright screenshot (full_page=True, dynamic height), Puppeteer fallback
+- Templates use min-height: 1080px (not fixed height) — content expands naturally, never clips
+- Profile image: `src/content_agent/templates/assets/profile.png`
+- Social handle: @techycodec08
 
 ## Note Intelligence
 - Full note body passed to models (no truncation)

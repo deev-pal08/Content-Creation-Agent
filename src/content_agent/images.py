@@ -190,11 +190,14 @@ class ImageProducer:
         day_number: int = 0,
     ) -> ImageAsset:
         template = self._jinja_env.get_template("key_fact.html")
+        profile_path = TEMPLATES_DIR / "assets" / "profile.png"
+        profile_uri = f"file://{profile_path.resolve()}" if profile_path.exists() else ""
         html = template.render(
             headline=headline,
             explanation=explanation,
             source=source,
             day_number=day_number,
+            profile_image_uri=profile_uri,
             colors=self._colors.model_dump(),
         )
 
@@ -220,16 +223,19 @@ class ImageProducer:
         slides = carousel_data.get("slides", [])
         total = len(slides)
         assets: list[ImageAsset] = []
+        file_name = carousel_data.get("file_name", "security-lesson.sh")
 
         cover_html = template.render(
             is_cover=True,
             heading=carousel_data.get("title", ""),
             subtitle=carousel_data.get("subtitle", ""),
+            file_name=file_name,
+            toc_items=carousel_data.get("toc_items", []),
+            breadcrumb="// LESSON //",
+            tag_pill="SWIPE TO LEARN",
             slide_number=0,
             total_slides=total,
-            progress_pct=0,
             day_number=day_number,
-            footer="",
             colors=self._colors.model_dump(),
         )
         cover_html_path = self._output_dir / f"day_{day_number}_carousel_0.html"
@@ -248,15 +254,18 @@ class ImageProducer:
         ))
 
         for i, slide in enumerate(slides, 1):
-            pct = int((i / total) * 100)
             slide_html = template.render(
                 is_cover=False,
                 heading=slide.get("heading", ""),
                 body=slide.get("body", ""),
-                footer=slide.get("footer", ""),
+                file_name=file_name,
+                breadcrumb=f"// SLIDE {i:02d} //",
+                tag_pill=slide.get("tag", ""),
+                terminal_lines=slide.get("terminal_lines", []),
+                lesson=slide.get("lesson", ""),
+                tags=slide.get("tags", []),
                 slide_number=i,
                 total_slides=total,
-                progress_pct=pct,
                 day_number=day_number,
                 colors=self._colors.model_dump(),
             )
@@ -375,7 +384,7 @@ def _html_to_png_playwright(html_path: Path, png_path: Path) -> None:
             page = browser.new_page(viewport={"width": 1080, "height": 1080})
             page.goto(f"file://{html_path.resolve()}", wait_until="networkidle")
             page.wait_for_timeout(500)
-            page.screenshot(path=str(png_path.resolve()))
+            page.screenshot(path=str(png_path.resolve()), full_page=True)
             browser.close()
     except Exception as e:
         log.warning("Playwright screenshot failed (falling back to HTML only): %s", e)

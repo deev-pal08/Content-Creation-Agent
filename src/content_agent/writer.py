@@ -201,6 +201,7 @@ Guidelines:
 - A 16-year-old should understand both the headline and explanation"""
 
 CAROUSEL_PROMPT = """You are a security educator creating a multi-slide educational carousel for Instagram/LinkedIn.
+The slides will be rendered in a terminal/hacker aesthetic — dark background, monospace headings, code blocks.
 
 Study material:
 {notes_summary}
@@ -209,13 +210,18 @@ Create a 5-6 slide educational breakdown that teaches the concept progressively.
 
 Respond with ONLY valid JSON (no markdown fencing, no extra text):
 {{
-    "title": "Carousel title (shown on cover slide)",
-    "subtitle": "One-line hook or question",
+    "title": "Carousel title (2-4 words, punchy, shown huge on cover)",
+    "subtitle": "One-line hook or question that makes people want to swipe",
+    "file_name": "topic-name.sh",
+    "toc_items": ["Slide 1 heading", "Slide 2 heading", "...for all slides"],
     "slides": [
         {{
-            "heading": "Slide heading (3-6 words)",
-            "body": "2-4 sentences teaching one specific point. Simple language, concrete examples.",
-            "footer": "Optional one-line tip or note"
+            "heading": "Slide heading (2-4 words, bold and punchy)",
+            "tag": "SHORT LABEL",
+            "body": "2-3 sentences teaching one specific point. Simple language, concrete examples.",
+            "terminal_lines": ["> # Key command or pseudo-code line", "  # Comment explaining it", "  # Another line"],
+            "lesson": "1-2 sentence takeaway or deeper insight for this slide.",
+            "tags": ["keyword1", "keyword2", "keyword3"]
         }}
     ]
 }}
@@ -225,7 +231,9 @@ Rules for each slide:
 - Progressive: slide 2 builds on slide 1, etc.
 - Use analogies and examples, not abstract definitions
 - A 16-year-old should understand every slide
-- Heading should be engaging, not academic (not "Introduction" or "Background")
+- Heading should be bold and punchy (2-4 words), not academic
+- terminal_lines should look like real terminal commands or pseudo-code (3-5 lines each)
+- tags should be 2-4 short keywords for the bottom of the slide
 - 5-6 slides total (not counting cover slide)
 - Last slide should be an actionable takeaway or call to action"""
 

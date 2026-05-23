@@ -2,111 +2,288 @@
 <html>
 <head>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     width: 1080px;
-    height: 1080px;
-    background: {{ colors.primary }};
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: {{ colors.text_light }};
+    min-height: 1080px;
+    background: #0d1117;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #e6edf3;
     display: flex;
     flex-direction: column;
-    padding: 60px;
-    position: relative;
-    overflow: hidden;
   }
-  .top-bar {
+
+  /* ── Terminal title bar ── */
+  .title-bar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: 18px 40px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
   }
-  .slide-indicator {
-    font-size: 20px;
-    color: {{ colors.highlight }};
-    font-weight: 700;
-    letter-spacing: 1px;
+  .dots {
+    display: flex;
+    gap: 8px;
+    margin-right: 20px;
   }
-  .series-title {
-    font-size: 16px;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
   }
-  .progress-bar {
-    width: 100%;
-    height: 4px;
-    background: {{ colors.accent }};
-    border-radius: 2px;
-    margin-bottom: 50px;
-    overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%;
-    background: {{ colors.highlight }};
-    border-radius: 2px;
-  }
-  .heading {
-    font-size: 46px;
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 40px;
-    max-width: 900px;
-    color: {{ colors.text_light }};
-  }
-  .body-text {
-    font-size: 28px;
-    line-height: 1.6;
-    color: #c0c0c0;
-    max-width: 900px;
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+  .file-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #8b949e;
     flex-grow: 1;
   }
-  .slide-footer {
-    padding-top: 30px;
-    border-top: 2px solid {{ colors.accent }};
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #8b949e;
+  }
+
+  /* ── Main content area ── */
+  .content {
+    flex-grow: 1;
+    padding: 44px 50px 30px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ── Breadcrumb ── */
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #4ade80;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  /* ── Big heading ── */
+  .heading {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    color: #ffffff;
+    max-width: 920px;
+  }
+  .cover-mode .heading {
+    font-size: 80px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Tag pill ── */
+  .tag-pill {
+    display: inline-block;
+    border: 1px solid #4ade80;
+    color: #4ade80;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  /* ── Body text ── */
+  .body-text {
+    font-size: 24px;
+    line-height: 1.65;
+    color: #c9d1d9;
+    max-width: 900px;
+    margin-bottom: 28px;
+  }
+
+  /* ── Code/terminal block ── */
+  .terminal-block {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+  .terminal-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    line-height: 1.8;
+    color: #8b949e;
+  }
+  .terminal-line .prefix {
+    color: #4ade80;
+  }
+  .terminal-line .comment {
+    color: #6e7681;
+  }
+
+  /* ── Lesson section ── */
+  .lesson-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4ade80;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .lesson-text {
+    font-size: 20px;
+    line-height: 1.6;
+    color: #8b949e;
+    max-width: 880px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Bottom tags ── */
+  .bottom-tags {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .bottom-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 6px 16px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    padding: 16px 50px;
+    border-top: 1px solid #30363d;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .footer-note {
+  .handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #8b949e;
+  }
+  .handle .prompt {
+    color: #4ade80;
+  }
+  .credit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #484f58;
+  }
+
+  /* ── Cover mode: table of contents list ── */
+  .toc-list {
+    list-style: none;
+    margin-top: 12px;
+  }
+  .toc-list li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    line-height: 2.0;
+    color: #c9d1d9;
+  }
+  .toc-list .num {
+    color: #4ade80;
+    margin-right: 8px;
+  }
+  .cover-subtitle {
+    font-size: 18px;
+    color: #8b949e;
+    margin-bottom: 28px;
+    letter-spacing: 1px;
+  }
+
+  /* ── Navigation arrows (decorative) ── */
+  .nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b949e;
     font-size: 20px;
-    color: #888;
-    font-style: italic;
-    max-width: 700px;
   }
-  .brand {
-    font-size: 16px;
-    color: #666;
-  }
-  .cover-mode .heading {
-    font-size: 56px;
-    margin-bottom: 30px;
-  }
-  .cover-mode .subtitle {
-    font-size: 30px;
-    color: {{ colors.highlight }};
-    font-weight: 600;
-  }
+  .nav-left { left: 14px; }
+  .nav-right { right: 14px; }
 </style>
 </head>
 <body{% if is_cover %} class="cover-mode"{% endif %}>
-  <div class="top-bar">
-    <div class="slide-indicator">{% if is_cover %}SWIPE TO LEARN{% else %}{{ slide_number }}/{{ total_slides }}{% endif %}</div>
-    <div class="series-title">Security Learning Journey</div>
+  <div class="title-bar">
+    <div class="dots">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+    </div>
+    <div class="file-name">{{ file_name | default('security-lesson.sh', true) }}</div>
+    <div class="slide-counter">{% if is_cover %}01 / {{ '%02d' % (total_slides + 1) }}{% else %}{{ '%02d' % (slide_number + 1) }} / {{ '%02d' % (total_slides + 1) }}{% endif %}</div>
   </div>
-  <div class="progress-bar">
-    <div class="progress-fill" style="width: {{ progress_pct }}%"></div>
+
+  <div class="content">
+    {% if not is_cover %}
+    <div class="nav-arrow nav-left">‹</div>
+    <div class="nav-arrow nav-right">›</div>
+    {% else %}
+    <div class="nav-arrow nav-right">›</div>
+    {% endif %}
+
+    <div class="breadcrumb">{{ breadcrumb | default('// LESSON //', true) }}</div>
+    <div class="heading">{{ heading }}</div>
+
+    {% if is_cover %}
+    <div class="tag-pill">{{ tag_pill | default('SWIPE TO LEARN', true) }}</div>
+    <div class="cover-subtitle">{{ subtitle }}</div>
+    {% if toc_items %}
+    <ul class="toc-list">
+      {% for item in toc_items %}
+      <li><span class="num">{{ '%02d' % loop.index }}.</span>{{ item }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% else %}
+    <div class="tag-pill">{{ tag_pill | default('', true) }}</div>
+    <div class="body-text">{{ body }}</div>
+
+    {% if terminal_lines %}
+    <div class="terminal-block">
+      {% for line in terminal_lines %}
+      <div class="terminal-line">{{ line }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if lesson %}
+    <div class="lesson-label">THE LESSON</div>
+    <div class="lesson-text">{{ lesson }}</div>
+    {% endif %}
+
+    {% if tags %}
+    <div class="bottom-tags">
+      {% for t in tags %}
+      <div class="bottom-tag">{{ t }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
   </div>
-  {% if is_cover %}
-  <div class="heading">{{ heading }}</div>
-  <div class="subtitle">{{ subtitle }}</div>
-  {% else %}
-  <div class="heading">{{ heading }}</div>
-  <div class="body-text">{{ body }}</div>
-  {% endif %}
-  <div class="slide-footer">
-    {% if footer %}<div class="footer-note">{{ footer }}</div>{% endif %}
-    <div class="brand">{% if day_number %}Day {{ day_number }}{% endif %}</div>
+
+  <div class="footer">
+    <div class="handle"><span class="prompt">$</span> @techycodec08</div>
+    {% if day_number %}<div class="credit">Day {{ day_number }}</div>{% endif %}
   </div>
 </body>
 </html>

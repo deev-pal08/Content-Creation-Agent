@@ -78,15 +78,15 @@ This agent doesn't journal — it teaches. Every piece of content follows these 
 
 ## Image Types
 
-| Type | Method | Description |
-|------|--------|-------------|
-| Day Card | GPT-4o art + HTML overlay | Concept art background with day number + topic text |
-| Code Challenge | HTML/CSS → Playwright | Monospace vulnerable code with "Find the vulnerability" |
-| Comparison Card | HTML/CSS → Playwright | Red "Vulnerable" vs Green "Secure" side-by-side |
-| Key Fact Card | HTML/CSS → Playwright | Bold headline stat with source attribution |
-| Carousel | HTML/CSS → Playwright | Multi-slide series: cover + numbered educational slides |
+| Type | Method | Style | Description |
+|------|--------|-------|-------------|
+| Day Card | GPT-4o art + HTML overlay | Concept art | Concept art background with day number + topic text |
+| Code Challenge | HTML/CSS → Playwright | Terminal/hacker | Monospace vulnerable code with "Find the vulnerability" |
+| Comparison Card | HTML/CSS → Playwright | Terminal/hacker | Red "Vulnerable" vs Green "Secure" side-by-side |
+| Key Fact Card | HTML/CSS → Playwright | Twitter screenshot | Profile pic + bold headline stat, pure black background |
+| Carousel | HTML/CSS → Playwright | Terminal/hacker | Multi-slide series: cover with TOC + terminal code blocks |
 
-AI models cannot reliably render text. The agent uses HTML/CSS templates for all text-heavy images, screenshotted via Playwright at 1080x1080 for pixel-perfect results.
+Two visual styles inspired by @nahamsec (terminal/hacker) and viral Twitter posts (screenshot style). Templates use `min-height: 1080px` with `full_page=True` screenshots — content expands naturally, never clips.
 
 ## Note Intelligence
 

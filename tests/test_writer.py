@@ -139,9 +139,11 @@ def test_generate_carousel_valid_json():
     mock_response = json.dumps({
         "title": "Understanding SSRF",
         "subtitle": "How attackers talk to your internal services",
+        "file_name": "ssrf-guide.sh",
+        "toc_items": ["What is SSRF?", "How it works"],
         "slides": [
-            {"heading": "What is SSRF?", "body": "Server-Side Request Forgery...", "footer": ""},
-            {"heading": "How it works", "body": "The attacker tricks...", "footer": "Think: mail forwarding"},
+            {"heading": "What is SSRF?", "body": "Server-Side Request Forgery...", "tag": "BASICS", "terminal_lines": ["> # example"], "lesson": "Learn SSRF", "tags": ["ssrf"]},
+            {"heading": "How it works", "body": "The attacker tricks...", "tag": "ATTACK", "terminal_lines": ["> # curl"], "lesson": "Validate URLs", "tags": ["defense"]},
         ],
     })
     with patch.object(writer, "_call_claude", return_value=mock_response):
