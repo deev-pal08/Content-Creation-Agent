@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 from pathlib import Path
 
@@ -17,6 +18,20 @@ from content_agent.models import ImageAsset, ImageGenerator, ImageType, Obsidian
 log = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+
+_screenshot_backend: str | None = None
+
+
+def _detect_screenshot_backend() -> str:
+    global _screenshot_backend
+    if _screenshot_backend:
+        return _screenshot_backend
+    try:
+        from playwright.sync_api import sync_playwright
+        _screenshot_backend = "playwright"
+    except ImportError:
+        _screenshot_backend = "puppeteer"
+    return _screenshot_backend
 
 
 class ImageProducer:
@@ -59,10 +74,13 @@ class ImageProducer:
 
         _html_to_png(html_path, png_path)
 
+        backend = _detect_screenshot_backend()
+        gen = ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+
         return ImageAsset(
             image_type=ImageType.DAY_CARD,
             file_path=str(png_path),
-            generator=ImageGenerator.PUPPETEER,
+            generator=gen,
             prompt=f"Day {day_number}: {topic}",
             metadata={"day_number": day_number, "topic": topic},
         )
@@ -88,10 +106,13 @@ class ImageProducer:
 
         _html_to_png(html_path, png_path)
 
+        backend = _detect_screenshot_backend()
+        gen = ImageGenerator.PLAYWRIGHT if backend == "playwright" else ImageGenerator.PUPPETEER
+
         return ImageAsset(
             image_type=ImageType.CODE_CHALLENGE,
             file_path=str(png_path),
-            generator=ImageGenerator.PUPPETEER,
+            generator=gen,
             prompt=f"Code challenge: {vulnerability}",
             metadata={"language": language, "vulnerability": vulnerability},
         )
@@ -220,6 +241,27 @@ class ImageProducer:
 
 
 def _html_to_png(html_path: Path, png_path: Path) -> None:
+    backend = _detect_screenshot_backend()
+    if backend == "playwright":
+        _html_to_png_playwright(html_path, png_path)
+    else:
+        _html_to_png_puppeteer(html_path, png_path)
+
+
+def _html_to_png_playwright(html_path: Path, png_path: Path) -> None:
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(viewport={"width": 1080, "height": 1080})
+            page.goto(f"file://{html_path.resolve()}")
+            page.screenshot(path=str(png_path.resolve()))
+            browser.close()
+    except Exception as e:
+        log.warning("Playwright screenshot failed (falling back to HTML only): %s", e)
+
+
+def _html_to_png_puppeteer(html_path: Path, png_path: Path) -> None:
     try:
         subprocess.run(
             [

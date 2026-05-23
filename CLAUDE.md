@@ -12,7 +12,7 @@ Multi-modal content creation agent that transforms daily Obsidian learning notes
 - OpenAI gpt-4o-mini-tts — video narration (TTS)
 - Recraft V3 API — infographic image generation
 - Ideogram V3 API — concept explainer images
-- Puppeteer (Node.js) — HTML template → PNG screenshots (day cards, code challenges)
+- Playwright (Python) — HTML template → PNG screenshots (day cards, code challenges), Puppeteer (Node.js) fallback
 - Remotion (Node.js) — programmatic video rendering
 - Buffer API — social media post scheduling
 - Jinja2 — HTML template rendering
@@ -76,7 +76,7 @@ uv run pytest tests/ -v             # run tests (91 tests)
 - **Code Challenge** — "Spot the bug" images for Twitter + LinkedIn (Claude intelligently decides if today's topic suits a code challenge, generates realistic vulnerable code snippet)
 
 ## Image Generation Strategy
-- Day cards + code challenges: HTML/CSS templates → Puppeteer screenshot (free, pixel-perfect)
+- Day cards + code challenges: HTML/CSS templates → Playwright screenshot (free, pixel-perfect), Puppeteer fallback
 - Infographics: Recraft V3 API (vector SVG, brand style tools)
 - Concept explainers: Ideogram V3 API (#1 text rendering)
 - AI models cannot reliably render code — always use HTML templates for code

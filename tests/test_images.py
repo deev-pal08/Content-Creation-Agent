@@ -46,7 +46,7 @@ def test_day_card_html_generation(tmp_path):
         date="2026-05-23",
     )
     assert asset.image_type == "day_card"
-    assert asset.generator == "puppeteer"
+    assert asset.generator in ("puppeteer", "playwright")
     assert "42" in asset.prompt
 
     html_path = tmp_path / "images" / "day_42_card.html"
@@ -69,7 +69,7 @@ def test_code_challenge_html_generation(tmp_path):
         day_number=5,
     )
     assert asset.image_type == "code_challenge"
-    assert asset.generator == "puppeteer"
+    assert asset.generator in ("puppeteer", "playwright")
 
     html_path = tmp_path / "images" / "day_5_challenge.html"
     assert html_path.exists()

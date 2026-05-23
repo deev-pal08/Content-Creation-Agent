@@ -42,6 +42,7 @@ class ImageType(StrEnum):
 class ImageGenerator(StrEnum):
     SATORI = "satori"
     PUPPETEER = "puppeteer"
+    PLAYWRIGHT = "playwright"
     RECRAFT = "recraft"
     IDEOGRAM = "ideogram"
     GPT4O = "gpt4o"

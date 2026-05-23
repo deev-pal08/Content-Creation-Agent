@@ -1,0 +1,32 @@
+{
+  "name": "content-creation-agent",
+  "version": "1.0.0",
+  "description": "Multi-modal content creation agent — transforms daily Obsidian learning notes into social media content across Twitter, LinkedIn, Instagram, and YouTube.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deev-pal08/Content-Creation-Agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/deev-pal08/Content-Creation-Agent/issues"
+  },
+  "homepage": "https://github.com/deev-pal08/Content-Creation-Agent#readme",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.465",
+    "@remotion/cli": "^4.0.465",
+    "puppeteer": "^25.0.4",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "remotion": "^4.0.465"
+  }
+}
