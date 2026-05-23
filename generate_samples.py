@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from content_agent.images import _accent_for_day
 
 TEMPLATES_DIR = Path("src/content_agent/templates")
 OUTPUT_DIR = Path("output/samples")
@@ -21,7 +22,10 @@ colors = {
 profile_path = TEMPLATES_DIR / "assets" / "profile.png"
 profile_uri = f"file://{profile_path.resolve()}" if profile_path.exists() else ""
 
-# ── 1. Carousel: Cover ──
+DAY = 12
+theme = _accent_for_day(DAY)
+
+# ── 1. Carousel: Cover (Day 12 — green) ──
 carousel_tpl = env.get_template("carousel_slide.html")
 
 cover_html = carousel_tpl.render(
@@ -41,12 +45,13 @@ cover_html = carousel_tpl.render(
     tag_pill="SWIPE TO LEARN",
     slide_number=0,
     total_slides=6,
-    day_number=12,
+    day_number=DAY,
+    theme=theme,
     colors=colors,
 )
 (OUTPUT_DIR / "carousel_cover.html").write_text(cover_html)
 
-# ── 2. Carousel: Content slide ──
+# ── 2. Carousel: Content slide (Day 12 — green) ──
 slide_html = carousel_tpl.render(
     is_cover=False,
     heading="The Core Problem",
@@ -65,37 +70,64 @@ slide_html = carousel_tpl.render(
     tags=["instructions vs data", "trust boundary", "injection"],
     slide_number=2,
     total_slides=6,
-    day_number=12,
+    day_number=DAY,
+    theme=theme,
     colors=colors,
 )
 (OUTPUT_DIR / "carousel_slide.html").write_text(slide_html)
 
-# ── 3. Carousel: Last slide ──
-slide3_html = carousel_tpl.render(
-    is_cover=False,
-    heading="Defense Layers",
-    body="There's no silver bullet — but layered defense reduces risk dramatically. Input filtering, output monitoring, privilege separation, and human-in-the-loop for sensitive actions.",
-    file_name="prompt-injection.sh",
-    breadcrumb="// SLIDE 06 //",
-    tag_pill="DEFENSE",
-    terminal_lines=[
-        '> # Layer 1: Input sanitization',
-        '  filter_prompt(user_input)',
-        '> # Layer 2: Output monitoring',
-        '  detect_pii(model_output)',
-        '> # Layer 3: Least privilege',
-        '  restrict_tool_access(role)',
+# ── 3. Carousel: Cover (Day 13 — violet) — shows color rotation ──
+DAY2 = 13
+theme2 = _accent_for_day(DAY2)
+
+cover2_html = carousel_tpl.render(
+    is_cover=True,
+    heading="SSRF Attacks",
+    subtitle="How attackers make your server talk to itself",
+    file_name="ssrf-deep-dive.sh",
+    toc_items=[
+        "What Is SSRF?",
+        "Cloud Metadata",
+        "Bypassing Filters",
+        "Real Breaches",
+        "Defense Patterns",
     ],
-    lesson="Defense in depth isn't just for networks. Every LLM application needs multiple independent safety layers, because any single one can be bypassed.",
-    tags=["defense in depth", "filtering", "least privilege"],
-    slide_number=6,
-    total_slides=6,
-    day_number=12,
+    breadcrumb="// LESSON //",
+    tag_pill="SWIPE TO LEARN",
+    slide_number=0,
+    total_slides=5,
+    day_number=DAY2,
+    theme=theme2,
     colors=colors,
 )
-(OUTPUT_DIR / "carousel_slide_last.html").write_text(slide3_html)
+(OUTPUT_DIR / "carousel_cover_day13.html").write_text(cover2_html)
 
-# ── 4. Code Challenge ──
+# ── 4. Carousel slide (Day 13 — violet) ──
+slide2_html = carousel_tpl.render(
+    is_cover=False,
+    heading="Cloud Metadata",
+    body="Every cloud provider has a metadata endpoint at 169.254.169.254. If your server makes requests based on user input, an attacker can read your cloud credentials, API keys, and service account tokens.",
+    file_name="ssrf-deep-dive.sh",
+    breadcrumb="// SLIDE 02 //",
+    tag_pill="ATTACK VECTOR",
+    terminal_lines=[
+        '> # Attacker sends this URL:',
+        '  http://169.254.169.254/latest/',
+        '    meta-data/iam/security-credentials/',
+        '> # Server fetches it internally',
+        '> # Returns: AWS access keys',
+    ],
+    lesson="The Capital One breach (2019) started with SSRF to the AWS metadata endpoint. 100 million customer records exposed. One request.",
+    tags=["metadata", "cloud", "credentials"],
+    slide_number=2,
+    total_slides=5,
+    day_number=DAY2,
+    theme=theme2,
+    colors=colors,
+)
+(OUTPUT_DIR / "carousel_slide_day13.html").write_text(slide2_html)
+
+# ── 5. Code Challenge (Day 12 — green) ──
 challenge_tpl = env.get_template("code_challenge.html")
 challenge_html = challenge_tpl.render(
     code='''from flask import Flask, request
@@ -119,12 +151,13 @@ if __name__ == "__main__":
     language="python",
     vulnerability="COMMAND INJECTION",
     hint="What happens if a user sends host=8.8.8.8; cat /etc/passwd?",
-    day_number=12,
+    day_number=DAY,
+    theme=theme,
     colors=colors,
 )
 (OUTPUT_DIR / "code_challenge.html").write_text(challenge_html)
 
-# ── 5. Comparison Card ──
+# ── 6. Comparison Card (Day 12 — green) ──
 comparison_tpl = env.get_template("comparison_card.html")
 comparison_html = comparison_tpl.render(
     title="OS Command Execution",
@@ -158,23 +191,26 @@ def ping(host):
 # as a literal hostname string''',
     language="python",
     explanation="Never pass user input to shell=True. Use argument lists and validate input against an allowlist pattern.",
-    day_number=12,
+    day_number=DAY,
+    theme=theme,
     colors=colors,
 )
 (OUTPUT_DIR / "comparison_card.html").write_text(comparison_html)
 
-# ── 6. Key Fact Card (Twitter style) ──
+# ── 7. Key Fact Card (Twitter style — no accent rotation) ──
 keyfact_tpl = env.get_template("key_fact.html")
 keyfact_html = keyfact_tpl.render(
     headline="Prompt injection is ranked #1 on the OWASP Top 10 for LLM Applications — and there is no complete fix.",
     explanation="Unlike SQL injection, which was solved with parameterized queries, prompt injection has no equivalent defense. LLMs fundamentally cannot distinguish instructions from data.",
     source="OWASP LLM Top 10 (2025)",
-    day_number=12,
+    day_number=DAY,
     profile_image_uri=profile_uri,
     colors=colors,
 )
 (OUTPUT_DIR / "key_fact.html").write_text(keyfact_html)
 
-print(f"Generated 6 sample HTML files in {OUTPUT_DIR}/")
+print(f"Generated 7 sample HTML files in {OUTPUT_DIR}/")
+print(f"  Day {DAY} accent: {theme['accent']} (green)")
+print(f"  Day {DAY2} accent: {theme2['accent']} (violet)")
 for f in sorted(OUTPUT_DIR.glob("*.html")):
     print(f"  {f.name}")

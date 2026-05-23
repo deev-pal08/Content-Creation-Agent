@@ -58,7 +58,7 @@
   .breadcrumb {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
-    color: #4ade80;
+    color: {{ theme.accent | default('#4ade80', true) }};
     letter-spacing: 2px;
     text-transform: uppercase;
     margin-bottom: 16px;
@@ -75,8 +75,8 @@
 
   .tag-pill {
     display: inline-block;
-    border: 1px solid #4ade80;
-    color: #4ade80;
+    border: 1px solid {{ theme.accent | default('#4ade80', true) }};
+    color: {{ theme.accent | default('#4ade80', true) }};
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     font-weight: 700;
@@ -121,8 +121,8 @@
   }
   .secure .side-header {
     background: rgba(74, 222, 128, 0.15);
-    color: #4ade80;
-    border-bottom: 2px solid #4ade80;
+    color: {{ theme.accent | default('#4ade80', true) }};
+    border-bottom: 2px solid {{ theme.accent | default('#4ade80', true) }};
   }
   .side-header .icon {
     font-size: 18px;
@@ -159,7 +159,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     font-weight: 700;
-    color: #4ade80;
+    color: {{ theme.accent | default('#4ade80', true) }};
     letter-spacing: 3px;
     text-transform: uppercase;
     margin-bottom: 10px;
@@ -185,7 +185,7 @@
     color: #8b949e;
   }
   .handle .prompt {
-    color: #4ade80;
+    color: {{ theme.accent | default('#4ade80', true) }};
   }
   .lang-tag {
     font-family: 'JetBrains Mono', monospace;

@@ -19,6 +19,20 @@ log = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
+ACCENT_THEMES = [
+    {"accent": "#4ade80", "accent_dim": "#166534"},   # green
+    {"accent": "#a78bfa", "accent_dim": "#5b21b6"},   # violet
+    {"accent": "#22d3ee", "accent_dim": "#155e75"},   # cyan
+    {"accent": "#fb923c", "accent_dim": "#9a3412"},   # orange
+    {"accent": "#f472b6", "accent_dim": "#9d174d"},   # pink
+    {"accent": "#facc15", "accent_dim": "#854d0e"},   # yellow
+    {"accent": "#38bdf8", "accent_dim": "#075985"},   # sky blue
+]
+
+
+def _accent_for_day(day_number: int) -> dict[str, str]:
+    return ACCENT_THEMES[day_number % len(ACCENT_THEMES)]
+
 _screenshot_backend: str | None = None
 
 
@@ -126,12 +140,14 @@ class ImageProducer:
         day_number: int = 0,
     ) -> ImageAsset:
         template = self._jinja_env.get_template("code_challenge.html")
+        theme = _accent_for_day(day_number)
         html = template.render(
             code=code,
             language=language,
             vulnerability=vulnerability,
             hint=hint,
             day_number=day_number,
+            theme=theme,
             colors=self._colors.model_dump(),
         )
 
@@ -158,6 +174,7 @@ class ImageProducer:
         explanation: str = "", day_number: int = 0,
     ) -> ImageAsset:
         template = self._jinja_env.get_template("comparison_card.html")
+        theme = _accent_for_day(day_number)
         html = template.render(
             title=title,
             vulnerable_label=vulnerable_label,
@@ -167,6 +184,7 @@ class ImageProducer:
             language=language,
             explanation=explanation,
             day_number=day_number,
+            theme=theme,
             colors=self._colors.model_dump(),
         )
 
@@ -224,6 +242,7 @@ class ImageProducer:
         total = len(slides)
         assets: list[ImageAsset] = []
         file_name = carousel_data.get("file_name", "security-lesson.sh")
+        theme = _accent_for_day(day_number)
 
         cover_html = template.render(
             is_cover=True,
@@ -236,6 +255,7 @@ class ImageProducer:
             slide_number=0,
             total_slides=total,
             day_number=day_number,
+            theme=theme,
             colors=self._colors.model_dump(),
         )
         cover_html_path = self._output_dir / f"day_{day_number}_carousel_0.html"
@@ -267,6 +287,7 @@ class ImageProducer:
                 slide_number=i,
                 total_slides=total,
                 day_number=day_number,
+                theme=theme,
                 colors=self._colors.model_dump(),
             )
             html_path = self._output_dir / f"day_{day_number}_carousel_{i}.html"
