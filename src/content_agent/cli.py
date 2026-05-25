@@ -83,7 +83,10 @@ def daily(no_publish: bool, force: bool, date: str | None):
         trend_model_web=cfg.llm.trend_model_web,
         trend_model_youtube=cfg.llm.trend_model_youtube,
     )
-    focus = ", ".join(set(n.track for n in notes if n.track)) or "cybersecurity, AI security"
+    tracks = set(n.track for n in notes if n.track)
+    tags = set(tag for n in notes for tag in (n.tags or []))
+    focus_parts = tracks | tags | {"cybersecurity", "AI security", "prompt injection", "LLM security"}
+    focus = ", ".join(sorted(focus_parts))
     trend_reports = researcher.research_all(focus)
     all_trends = [t for r in trend_reports for t in r.trends]
     click.echo(f"   Found {len(all_trends)} trend(s) across {len(trend_reports)} source(s)")

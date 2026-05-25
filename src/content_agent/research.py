@@ -13,16 +13,26 @@ from content_agent.models import TrendItem, TrendReport
 
 log = logging.getLogger(__name__)
 
-TREND_PROMPT_TEMPLATE = """Analyze current trending topics in cybersecurity and AI security.
-Focus on topics relevant to: {focus_areas}
+TREND_PROMPT_TEMPLATE = """You are a social media trend analyst specializing in cybersecurity and AI security content.
 
-Return a JSON array of trending topics, each with:
-- "topic": the trending topic name
+Analyze what is trending RIGHT NOW across social media, news, and developer communities related to: {focus_areas}
+
+Look for:
+- Breaking security news, vulnerabilities, CVEs, breaches
+- Viral security posts, threads, or discussions
+- New tool releases, framework updates, research papers
+- Conference talks, CTF events, workshops
+- Regulatory changes, compliance updates
+- Trending hashtags and topics in the security community
+
+You MUST return EXACTLY 10 trending topics as a JSON array. Each item:
+- "topic": specific trending topic name (not generic categories)
 - "relevance_score": 0.0-1.0 how relevant to security/AI
-- "context": why it's trending (1-2 sentences)
-- "hashtags": relevant hashtags for this topic
+- "context": why it's trending right now, what happened (2-3 sentences with specifics)
+- "hashtags": 3-5 relevant hashtags for this topic
+- "content_angle": one sentence suggesting how to teach this topic to beginners
 
-Return ONLY the JSON array, no markdown fencing."""
+Return ONLY the JSON array, no markdown fencing, no extra text."""
 
 
 class TrendResearcher:
@@ -49,7 +59,12 @@ class TrendResearcher:
             return TrendReport(platform="twitter", generated_at=datetime.now(UTC))
 
         prompt = TREND_PROMPT_TEMPLATE.format(focus_areas=focus_areas)
-        prompt += "\n\nFocus on what's trending on X/Twitter RIGHT NOW in the security community."
+        prompt += (
+            "\n\nYou have LIVE ACCESS to X/Twitter. Search for what the security community "
+            "is posting about RIGHT NOW — check accounts like @_JohnHammond, @nahamsec, "
+            "@staborobot, @danielmiessler, @SwiftOnSecurity, @GossiTheDog, and trending "
+            "security hashtags. Include specific post references when possible."
+        )
 
         with httpx.Client(timeout=60) as client:
             resp = client.post(
@@ -78,7 +93,11 @@ class TrendResearcher:
             return TrendReport(platform="web", generated_at=datetime.now(UTC))
 
         prompt = TREND_PROMPT_TEMPLATE.format(focus_areas=focus_areas)
-        prompt += "\n\nSearch across the web, Reddit, and news for trending security topics."
+        prompt += (
+            "\n\nSearch the web, Reddit (r/netsec, r/cybersecurity, r/MachineLearning), "
+            "Hacker News, security blogs, and news sites. Focus on what broke in the "
+            "last 48 hours — new CVEs, zero-days, tool releases, research papers, incidents."
+        )
 
         with httpx.Client(timeout=60) as client:
             resp = client.post(
@@ -108,14 +127,23 @@ class TrendResearcher:
             return TrendReport(platform="youtube", generated_at=datetime.now(UTC))
 
         prompt = TREND_PROMPT_TEMPLATE.format(focus_areas=focus_areas)
-        prompt += "\n\nFocus on YouTube and Google Search trends in security and AI."
+        prompt += (
+            "\n\nFocus on trending YouTube videos and Google Search trends in security and AI. "
+            "Look for viral security tutorials, conference talk uploads, tool demos, "
+            "incident analysis videos, and educational content that's getting high engagement."
+        )
 
         from google import genai
+        from google.genai.types import GenerateContentConfig
 
         client = genai.Client(api_key=self._google_key)
         response = client.models.generate_content(
             model=self._model_youtube,
             contents=prompt,
+            config=GenerateContentConfig(
+                temperature=0.7,
+                max_output_tokens=4096,
+            ),
         )
 
         trends = _parse_trends(response.text or "")
@@ -167,5 +195,6 @@ def _parse_trends(content: str) -> list[TrendItem]:
                 source=item.get("source", ""),
                 context=item.get("context", ""),
                 hashtags=item.get("hashtags", []),
+                content_angle=item.get("content_angle", ""),
             ))
     return trends

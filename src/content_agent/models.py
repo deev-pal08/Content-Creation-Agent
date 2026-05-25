@@ -75,6 +75,7 @@ class TrendItem(BaseModel):
     source: str = ""
     context: str = ""
     hashtags: list[str] = Field(default_factory=list)
+    content_angle: str = ""
 
 
 class TrendReport(BaseModel):
