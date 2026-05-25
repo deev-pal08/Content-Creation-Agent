@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 
 import httpx
 from anthropic import Anthropic
+from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
+from anthropic.types.messages.batch_create_params import Request
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from content_agent.models import ContentPiece, ContentType, ObsidianNote, Platform, TrendItem
@@ -254,13 +256,68 @@ class ContentWriter:
         self._hot_take_model = hot_take_model
         self._max_tokens = max_tokens
         self._claude_client: Anthropic | None = None
-        self._last_claude_call: float = 0.0
-        self._call_interval: float = 15.0
         if anthropic_api_key:
             self._claude_client = Anthropic(
                 api_key=anthropic_api_key,
                 max_retries=5,
             )
+
+    # ------------------------------------------------------------------
+    # Batch API — submit all Claude calls at once, poll, collect results
+    # ------------------------------------------------------------------
+
+    def _submit_batch(self, prompts: dict[str, str]) -> str:
+        if not self._claude_client:
+            raise RuntimeError("No Anthropic API key configured")
+        requests = [
+            Request(
+                custom_id=custom_id,
+                params=MessageCreateParamsNonStreaming(
+                    model=self._writer_model,
+                    max_tokens=self._max_tokens,
+                    messages=[{"role": "user", "content": prompt}],
+                ),
+            )
+            for custom_id, prompt in prompts.items()
+        ]
+        batch = self._claude_client.messages.batches.create(requests=requests)
+        log.info("Batch submitted: %s (%d requests)", batch.id, len(requests))
+        return batch.id
+
+    def _poll_batch(
+        self, batch_id: str, poll_interval: int = 30, max_wait: int = 3600,
+    ) -> str:
+        if not self._claude_client:
+            raise RuntimeError("No Anthropic API key configured")
+        elapsed = 0
+        while elapsed < max_wait:
+            status = self._claude_client.messages.batches.retrieve(batch_id).processing_status
+            if status == "ended":
+                log.info("Batch %s completed after %ds", batch_id, elapsed)
+                return "ended"
+            if status in ("canceled", "expired"):
+                log.error("Batch %s %s", batch_id, status)
+                return status
+            log.info("Batch %s still processing (%ds elapsed)...", batch_id, elapsed)
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+        log.error("Batch %s timed out after %ds", batch_id, max_wait)
+        return "timed_out"
+
+    def _collect_batch(self, batch_id: str) -> dict[str, str]:
+        if not self._claude_client:
+            raise RuntimeError("No Anthropic API key configured")
+        results: dict[str, str] = {}
+        for result in self._claude_client.messages.batches.results(batch_id):
+            if result.result.type == "succeeded":
+                results[result.custom_id] = result.result.message.content[0].text  # type: ignore[union-attr]
+            else:
+                log.warning("Batch request %s failed: %s", result.custom_id, result.result.type)
+        return results
+
+    # ------------------------------------------------------------------
+    # Main entry — generates all text + image content in a single batch
+    # ------------------------------------------------------------------
 
     def generate_all_content(
         self,
@@ -276,65 +333,133 @@ class ContentWriter:
         notes_summary = _build_notes_summary(notes)
         trends_summary = _build_trends_summary(trends or [])
         notes_used = [n.file_path for n in notes]
+        target_date = date or datetime.now(UTC).strftime("%Y-%m-%d")
+
+        prompts: dict[str, str] = {
+            "daily_lesson": DAILY_LESSON_PROMPT.format(
+                day_number=day_number, notes_summary=notes_summary,
+            ),
+            "deep_dive": DEEP_DIVE_PROMPT.format(
+                day_number=day_number, notes_summary=notes_summary, trends_summary=trends_summary,
+            ),
+            "concept_breakdown": CONCEPT_BREAKDOWN_PROMPT.format(
+                day_number=day_number, notes_summary=notes_summary,
+            ),
+            "micro_lesson": MICRO_LESSON_PROMPT.format(
+                day_number=day_number, notes_summary=notes_summary,
+            ),
+        }
+
+        content_map = {
+            "daily_lesson": (ContentType.DAILY_LESSON, Platform.TWITTER),
+            "deep_dive": (ContentType.DEEP_DIVE, Platform.LINKEDIN),
+            "concept_breakdown": (ContentType.CONCEPT_BREAKDOWN, Platform.TWITTER),
+            "micro_lesson": (ContentType.MICRO_LESSON, Platform.INSTAGRAM),
+        }
+
+        # Submit batch and poll
+        batch_id = self._submit_batch(prompts)
+        status = self._poll_batch(batch_id)
+        if status != "ended":
+            log.error("Content batch %s — falling back to empty results", status)
+            return []
+
+        results = self._collect_batch(batch_id)
 
         pieces: list[ContentPiece] = []
-
-        generators = [
-            (self._generate_daily_lesson, ContentType.DAILY_LESSON, Platform.TWITTER),
-            (self._generate_deep_dive, ContentType.DEEP_DIVE, Platform.LINKEDIN),
-            (self._generate_concept_breakdown, ContentType.CONCEPT_BREAKDOWN, Platform.TWITTER),
-            (self._generate_surprising_fact, ContentType.SURPRISING_FACT, Platform.TWITTER),
-            (self._generate_micro_lesson, ContentType.MICRO_LESSON, Platform.INSTAGRAM),
-        ]
-
-        for gen_func, content_type, platform in generators:
-            try:
-                body = gen_func(
-                    notes_summary=notes_summary,
-                    trends_summary=trends_summary,
-                    day_number=day_number,
-                )
+        for custom_id, (content_type, platform) in content_map.items():
+            if custom_id in results:
                 pieces.append(ContentPiece(
                     content_type=content_type,
                     platform=platform,
                     title=f"Day {day_number}",
-                    body=body,
+                    body=results[custom_id],
                     day_number=day_number,
-                    generated_date=date or datetime.now(UTC).strftime("%Y-%m-%d"),
+                    generated_date=target_date,
                     notes_used=notes_used,
                 ))
                 log.info("Generated %s for %s", content_type.value, platform.value)
-            except Exception as e:
-                log.error("Failed to generate %s for %s: %s", content_type.value, platform.value, e)
+            else:
+                log.error("Missing batch result for %s", custom_id)
+
+        # Surprising fact via Grok (not part of batch)
+        try:
+            fact_body = self._generate_surprising_fact(
+                notes_summary=notes_summary,
+                trends_summary=trends_summary,
+                day_number=day_number,
+            )
+            pieces.append(ContentPiece(
+                content_type=ContentType.SURPRISING_FACT,
+                platform=Platform.TWITTER,
+                title=f"Day {day_number}",
+                body=fact_body,
+                day_number=day_number,
+                generated_date=target_date,
+                notes_used=notes_used,
+            ))
+            log.info("Generated surprising_fact for twitter")
+        except Exception as e:
+            log.error("Failed to generate surprising_fact: %s", e)
 
         return pieces
 
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
-    def _generate_daily_lesson(
-        self, notes_summary: str, trends_summary: str, day_number: int,
-    ) -> str:
-        prompt = DAILY_LESSON_PROMPT.format(
-            day_number=day_number, notes_summary=notes_summary,
-        )
-        return self._call_claude(prompt)
+    # ------------------------------------------------------------------
+    # Image content — batched together in a second batch
+    # ------------------------------------------------------------------
 
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
-    def _generate_deep_dive(
-        self, notes_summary: str, trends_summary: str, day_number: int,
-    ) -> str:
-        prompt = DEEP_DIVE_PROMPT.format(
-            day_number=day_number, notes_summary=notes_summary, trends_summary=trends_summary,
-        )
-        return self._call_claude(prompt)
+    def generate_image_content_batch(
+        self, notes: list[ObsidianNote],
+    ) -> dict[str, dict | None]:
+        if not notes:
+            return {"code_challenge": None, "comparison": None, "key_fact": None, "carousel": None}
 
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
-    def _generate_concept_breakdown(
-        self, notes_summary: str, trends_summary: str, day_number: int,
-    ) -> str:
-        prompt = CONCEPT_BREAKDOWN_PROMPT.format(
-            day_number=day_number, notes_summary=notes_summary,
-        )
-        return self._call_claude(prompt)
+        notes_summary = _build_notes_summary(notes)
+
+        prompts: dict[str, str] = {
+            "code_challenge": CODE_CHALLENGE_PROMPT.format(notes_summary=notes_summary),
+            "comparison": COMPARISON_PROMPT.format(notes_summary=notes_summary),
+            "key_fact": KEY_FACT_PROMPT.format(notes_summary=notes_summary),
+            "carousel": CAROUSEL_PROMPT.format(notes_summary=notes_summary),
+        }
+
+        required_fields_map = {
+            "code_challenge": ("code", "language", "vulnerability", "hint"),
+            "comparison": ("title", "vulnerable_code", "secure_code", "language"),
+            "key_fact": ("headline", "explanation"),
+            "carousel": ("title", "slides"),
+        }
+
+        no_match_tokens = {
+            "code_challenge": "NO_CHALLENGE",
+            "comparison": "NO_COMPARISON",
+        }
+
+        batch_id = self._submit_batch(prompts)
+        status = self._poll_batch(batch_id)
+
+        if status != "ended":
+            log.error("Image content batch %s — returning empty results", status)
+            return {"code_challenge": None, "comparison": None, "key_fact": None, "carousel": None}
+
+        raw_results = self._collect_batch(batch_id)
+
+        parsed: dict[str, dict | None] = {}
+        for custom_id in ("code_challenge", "comparison", "key_fact", "carousel"):
+            if custom_id not in raw_results:
+                log.warning("Missing batch result for %s", custom_id)
+                parsed[custom_id] = None
+                continue
+            parsed[custom_id] = self._parse_json_text(
+                raw_results[custom_id],
+                required_fields_map[custom_id],
+                no_match_tokens.get(custom_id, "NO_CHALLENGE"),
+            )
+        return parsed
+
+    # ------------------------------------------------------------------
+    # Individual generators (kept for fallback / standalone use)
+    # ------------------------------------------------------------------
 
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def _generate_surprising_fact(
@@ -344,15 +469,6 @@ class ContentWriter:
             notes_summary=notes_summary, trends_summary=trends_summary,
         )
         return self._call_grok(prompt)
-
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
-    def _generate_micro_lesson(
-        self, notes_summary: str, trends_summary: str, day_number: int,
-    ) -> str:
-        prompt = MICRO_LESSON_PROMPT.format(
-            day_number=day_number, notes_summary=notes_summary,
-        )
-        return self._call_claude(prompt)
 
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def generate_code_challenge(
@@ -397,16 +513,14 @@ class ContentWriter:
         prompt = CAROUSEL_PROMPT.format(notes_summary=notes_summary)
         return self._parse_json_response(prompt, ("title", "slides"))
 
-    def _parse_json_response(
-        self, prompt: str, required_fields: tuple, no_match_token: str = "NO_CHALLENGE",
-    ) -> dict | None:
-        try:
-            raw = self._call_claude(prompt)
-        except Exception as e:
-            log.error("Generation failed: %s", e)
-            return None
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
-        text = raw.strip()
+    def _parse_json_text(
+        self, text: str, required_fields: tuple, no_match_token: str = "NO_CHALLENGE",
+    ) -> dict | None:
+        text = text.strip()
         if text == no_match_token:
             log.info("Claude decided this content type doesn't fit today's topic")
             return None
@@ -430,20 +544,24 @@ class ContentWriter:
 
         return data
 
+    def _parse_json_response(
+        self, prompt: str, required_fields: tuple, no_match_token: str = "NO_CHALLENGE",
+    ) -> dict | None:
+        try:
+            raw = self._call_claude(prompt)
+        except Exception as e:
+            log.error("Generation failed: %s", e)
+            return None
+        return self._parse_json_text(raw, required_fields, no_match_token)
+
     def _call_claude(self, prompt: str) -> str:
         if not self._claude_client:
             raise RuntimeError("No Anthropic API key configured")
-        elapsed = time.monotonic() - self._last_claude_call
-        if elapsed < self._call_interval:
-            wait = self._call_interval - elapsed
-            log.info("Rate limit pacing: waiting %.0fs before next Claude call", wait)
-            time.sleep(wait)
         response = self._claude_client.messages.create(
             model=self._writer_model,
             max_tokens=self._max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
-        self._last_claude_call = time.monotonic()
         return response.content[0].text
 
     def _call_grok(self, prompt: str) -> str:

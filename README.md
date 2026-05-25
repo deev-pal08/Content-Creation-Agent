@@ -28,8 +28,8 @@ Obsidian Note (markdown + YAML frontmatter)
 [2. Research] ── Grok (X trends) + Perplexity (web) + Gemini (YouTube)
     |
     v
-[3. Write] ── Claude Sonnet 4 (educational content) + Grok 3 Mini (surprising facts)
-    |           + Claude generates code challenge, comparison, key fact, carousel data
+[3. Write] ── Claude Batch API (4 text pieces) + Grok 3 Mini (surprising fact)
+    |           + Claude Batch API (code challenge, comparison, key fact, carousel)
     v
 [4. Images] ── GPT-4o concept art → HTML/CSS overlay → Playwright screenshot
     |           + comparison card, key fact card, carousel slides (all HTML→PNG)
@@ -57,15 +57,15 @@ This agent doesn't journal — it teaches. Every piece of content follows these 
 
 | Model | Provider | Role | Cost/day |
 |-------|----------|------|----------|
-| Claude Sonnet 4 | Anthropic | Educational writing (5 pieces + image content) | ~$0.10 |
+| Claude Sonnet 4 | Anthropic | Educational writing (5 pieces + image content) via Batch API | ~$0.05 |
 | Grok 3 Mini | xAI | X/Twitter trends + surprising facts | ~$0.02 |
 | Gemini 2.5 Flash | Google | YouTube trends + SEO/hashtags | ~$0.01 |
 | gpt-image-1 | OpenAI | Concept art for day cards | ~$0.07 |
 | Perplexity Sonar | Perplexity | Web trend research | ~$0.01 |
 
-**Total: ~$0.21/day (~$6.30/month)** + Buffer scheduling ($15/month)
+**Total: ~$0.16/day (~$4.80/month)** + Buffer scheduling ($15/month)
 
-Claude calls are paced with a 15-second interval to stay under API rate limits — the pipeline takes ~3-5 minutes total.
+Claude calls use the Batch API (50% cheaper) — all prompts submitted at once, polled until complete. The pipeline takes ~2-5 minutes total depending on batch processing time.
 
 ## Content Types
 
@@ -220,7 +220,7 @@ src/content_agent/
         comparison_card.html  # Vulnerable vs Secure side-by-side
         key_fact.html         # Bold shareable fact/stat
         carousel_slide.html   # Multi-slide educational series
-tests/                # 89 tests
+tests/                # 98 tests
 config.yaml           # Pipeline configuration
 ```
 
@@ -234,7 +234,7 @@ uv run pytest tests/ -v
 uv run pytest tests/test_writer.py -v
 ```
 
-89 tests across 8 files covering config validation, data models, SQLite operations, Obsidian parsing, trend research parsing, educational content generation, SEO optimization, and all 5 image template types.
+98 tests across 8 files covering config validation, data models, SQLite operations, Obsidian parsing, trend research parsing, educational content generation (including batch flow), SEO optimization, and all 5 image template types.
 
 ## Roadmap
 
@@ -249,6 +249,7 @@ uv run pytest tests/test_writer.py -v
 - [x] 5 HTML/CSS image templates (Playwright rendering)
 - [x] SEO/hashtag optimization (Gemini Flash)
 - [x] SQLite persistence with day tracking
+- [x] Batch API for Claude calls (50% cost reduction)
 - [ ] Buffer API integration (post scheduling)
 - [ ] Engagement tracking and analytics
 

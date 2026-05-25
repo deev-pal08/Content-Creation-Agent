@@ -106,27 +106,28 @@ def daily(no_publish: bool, force: bool, date: str | None):
     for p in pieces:
         click.echo(f"   - {p.content_type.value} for {p.platform.value}")
 
-    # Step 3b: Generate educational image content (Claude decides what fits)
-    click.echo("\n   Generating educational image content...")
-    code_challenge = writer.generate_code_challenge(notes)
+    # Step 3b: Generate educational image content (batched)
+    click.echo("\n   Generating educational image content (batch)...")
+    image_content = writer.generate_image_content_batch(notes)
+    code_challenge = image_content["code_challenge"]
     if code_challenge:
         click.echo(f"   Code challenge: {code_challenge['vulnerability']} ({code_challenge['language']})")
     else:
         click.echo("   No code challenge for today's topic")
 
-    comparison = writer.generate_comparison(notes)
+    comparison = image_content["comparison"]
     if comparison:
         click.echo(f"   Comparison card: {comparison.get('title', 'untitled')}")
     else:
         click.echo("   No comparison card for today's topic")
 
-    key_fact = writer.generate_key_fact(notes)
+    key_fact = image_content["key_fact"]
     if key_fact:
         click.echo(f"   Key fact: {key_fact.get('headline', '')[:60]}...")
     else:
         click.echo("   No key fact generated")
 
-    carousel = writer.generate_carousel(notes)
+    carousel = image_content["carousel"]
     if carousel:
         click.echo(f"   Carousel: {carousel.get('title', '')} ({len(carousel.get('slides', []))} slides)")
     else:

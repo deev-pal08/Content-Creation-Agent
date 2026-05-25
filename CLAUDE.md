@@ -67,7 +67,8 @@ uv run pytest tests/ -v             # run tests (89 tests)
 ## Pipeline Flow
 1. **Ingest**: Read Obsidian notes for target date (YAML frontmatter + markdown parsing), resolve [[linked notes]] one level deep
 2. **Research**: Query Grok (X trends), Perplexity (web trends), Gemini (YouTube trends) in parallel
-3. **Write**: Generate 5 educational content pieces via Claude Sonnet + Grok + educational image content (code challenge, comparison, key fact, carousel) via Claude
+3. **Write**: Submit 4 text content prompts as a Claude Batch API job (daily lesson, deep dive, concept breakdown, micro lesson) + generate surprising fact via Grok. Poll batch until complete.
+3b. **Image Content**: Submit 4 image content prompts as a second batch (code challenge, comparison, key fact, carousel). Poll batch until complete.
 4. **Images**: Generate concept art (GPT-4o gpt-image-1), day card with concept overlay (HTML→PNG), code challenge (HTML→PNG), comparison card (HTML→PNG), key fact card (HTML→PNG), carousel slides (HTML→PNG)
 5. **SEO**: Optimize hashtags per platform (Gemini Flash), calculate posting times
 6. **Persist**: Save all to SQLite (content pieces, images, trends, daily run)
@@ -123,19 +124,19 @@ All state in `data/content.db`:
 
 ## Error Handling
 - Missing API keys trigger graceful fallbacks (default hashtags, skip image generation, etc.)
-- Claude Sonnet calls are rate-limit paced with a 15-second minimum interval between requests to stay under the per-minute token limit
-- All API calls wrapped with tenacity (4 attempts, exponential backoff up to 90s) as a safety net
+- Claude content generation uses the Batch API (50% cheaper) — all prompts submitted in two batches (text content + image content), polled every 30s until complete
+- Individual generators with tenacity retry (4 attempts, exponential backoff up to 90s) are kept as fallbacks
 - Anthropic client is created once with max_retries=5 and reused across all calls
 - Missing Obsidian vault or no notes for date: clear error message + exit
 - Dedup: same-day runs blocked unless --force
 
 ## Tests
-89 tests across 8 test files:
+98 tests across 8 test files:
 - `test_config.py` (8) — config validation, defaults, time format, YAML loading
 - `test_models.py` (9) — all Pydantic models, enums
 - `test_store.py` (13) — SQLite CRUD, status updates, stats, day tracking, engagement
 - `test_ingest.py` (14) — Obsidian parsing, frontmatter, sections, links, edge cases
 - `test_research.py` (8) — trend JSON parsing (clean, fenced, invalid, empty)
-- `test_writer.py` (13) — code challenge, comparison, key fact, carousel generation + JSON parsing
+- `test_writer.py` (22) — code challenge, comparison, key fact, carousel generation + JSON parsing + batch flow
 - `test_seo.py` (10) — hashtag parsing, posting times, content optimization
 - `test_images.py` (14) — code block extraction, HTML template generation, brand colors, all image types
