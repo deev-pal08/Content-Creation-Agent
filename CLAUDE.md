@@ -123,7 +123,9 @@ All state in `data/content.db`:
 
 ## Error Handling
 - Missing API keys trigger graceful fallbacks (default hashtags, skip image generation, etc.)
-- All API calls wrapped with tenacity (3 attempts, exponential backoff)
+- Claude Sonnet calls are rate-limit paced with a 15-second minimum interval between requests to stay under the per-minute token limit
+- All API calls wrapped with tenacity (4 attempts, exponential backoff up to 90s) as a safety net
+- Anthropic client is created once with max_retries=5 and reused across all calls
 - Missing Obsidian vault or no notes for date: clear error message + exit
 - Dedup: same-day runs blocked unless --force
 

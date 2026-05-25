@@ -65,6 +65,8 @@ This agent doesn't journal — it teaches. Every piece of content follows these 
 
 **Total: ~$0.21/day (~$6.30/month)** + Buffer scheduling ($15/month)
 
+Claude calls are paced with a 15-second interval to stay under API rate limits — the pipeline takes ~3-5 minutes total.
+
 ## Content Types
 
 | Type | Platform | Generator | Description |

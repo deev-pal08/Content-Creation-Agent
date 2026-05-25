@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from datetime import UTC, datetime
 
 import httpx
@@ -252,6 +253,14 @@ class ContentWriter:
         self._writer_model = writer_model
         self._hot_take_model = hot_take_model
         self._max_tokens = max_tokens
+        self._claude_client: Anthropic | None = None
+        self._last_claude_call: float = 0.0
+        self._call_interval: float = 15.0
+        if anthropic_api_key:
+            self._claude_client = Anthropic(
+                api_key=anthropic_api_key,
+                max_retries=5,
+            )
 
     def generate_all_content(
         self,
@@ -300,7 +309,7 @@ class ContentWriter:
 
         return pieces
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def _generate_daily_lesson(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
@@ -309,7 +318,7 @@ class ContentWriter:
         )
         return self._call_claude(prompt)
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def _generate_deep_dive(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
@@ -318,7 +327,7 @@ class ContentWriter:
         )
         return self._call_claude(prompt)
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def _generate_concept_breakdown(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
@@ -327,7 +336,7 @@ class ContentWriter:
         )
         return self._call_claude(prompt)
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def _generate_surprising_fact(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
@@ -336,7 +345,7 @@ class ContentWriter:
         )
         return self._call_grok(prompt)
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def _generate_micro_lesson(
         self, notes_summary: str, trends_summary: str, day_number: int,
     ) -> str:
@@ -345,6 +354,7 @@ class ContentWriter:
         )
         return self._call_claude(prompt)
 
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def generate_code_challenge(
         self, notes: list[ObsidianNote],
     ) -> dict | None:
@@ -354,6 +364,7 @@ class ContentWriter:
         prompt = CODE_CHALLENGE_PROMPT.format(notes_summary=notes_summary)
         return self._parse_json_response(prompt, ("code", "language", "vulnerability", "hint"))
 
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def generate_comparison(
         self, notes: list[ObsidianNote],
     ) -> dict | None:
@@ -366,6 +377,7 @@ class ContentWriter:
             no_match_token="NO_COMPARISON",
         )
 
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def generate_key_fact(
         self, notes: list[ObsidianNote],
     ) -> dict | None:
@@ -375,6 +387,7 @@ class ContentWriter:
         prompt = KEY_FACT_PROMPT.format(notes_summary=notes_summary)
         return self._parse_json_response(prompt, ("headline", "explanation"))
 
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(min=5, max=90))
     def generate_carousel(
         self, notes: list[ObsidianNote],
     ) -> dict | None:
@@ -418,14 +431,19 @@ class ContentWriter:
         return data
 
     def _call_claude(self, prompt: str) -> str:
-        if not self._anthropic_key:
+        if not self._claude_client:
             raise RuntimeError("No Anthropic API key configured")
-        client = Anthropic(api_key=self._anthropic_key)
-        response = client.messages.create(
+        elapsed = time.monotonic() - self._last_claude_call
+        if elapsed < self._call_interval:
+            wait = self._call_interval - elapsed
+            log.info("Rate limit pacing: waiting %.0fs before next Claude call", wait)
+            time.sleep(wait)
+        response = self._claude_client.messages.create(
             model=self._writer_model,
             max_tokens=self._max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
+        self._last_claude_call = time.monotonic()
         return response.content[0].text
 
     def _call_grok(self, prompt: str) -> str:

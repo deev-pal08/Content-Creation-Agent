@@ -18,6 +18,8 @@ dependencies = [
     "python-frontmatter>=1.1.0",
     "pillow>=10.3.0",
     "playwright>=1.40.0",
+    "replicate>=1.0.7",
+    "fal-client>=1.0.0",
 ]
 
 [project.scripts]
