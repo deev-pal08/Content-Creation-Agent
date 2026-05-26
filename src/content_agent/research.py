@@ -142,7 +142,8 @@ class TrendResearcher:
             contents=prompt,
             config=GenerateContentConfig(
                 temperature=0.7,
-                max_output_tokens=4096,
+                max_output_tokens=16384,
+                thinking_config={"thinking_budget": 4096},
             ),
         )
 
@@ -164,6 +165,22 @@ class TrendResearcher:
         return reports
 
 
+def _salvage_truncated_json(content: str) -> list[dict]:
+    """Extract complete JSON objects from truncated array output."""
+    import re
+    items = []
+    for match in re.finditer(r"\{[^{}]*\}", content):
+        try:
+            obj = json.loads(match.group())
+            if "topic" in obj:
+                items.append(obj)
+        except json.JSONDecodeError:
+            continue
+    if items:
+        log.warning("Salvaged %d trend(s) from truncated JSON", len(items))
+    return items
+
+
 def _parse_trends(content: str) -> list[TrendItem]:
     content = content.strip()
     if content.startswith("```"):
@@ -179,9 +196,9 @@ def _parse_trends(content: str) -> list[TrendItem]:
             try:
                 items = json.loads(match.group())
             except json.JSONDecodeError:
-                return []
+                items = _salvage_truncated_json(content)
         else:
-            return []
+            items = _salvage_truncated_json(content)
 
     if not isinstance(items, list):
         return []
